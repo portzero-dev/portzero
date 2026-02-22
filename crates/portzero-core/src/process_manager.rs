@@ -113,13 +113,9 @@ impl ProcessManager {
             env_vars: extra_env,
         }));
 
-        let route = self.router.register(
-            name.clone(),
-            port,
-            pid,
-            command.clone(),
-            cwd.clone(),
-        );
+        let route = self
+            .router
+            .register(name.clone(), port, pid, command.clone(), cwd.clone());
 
         // Set up log capture + process monitoring
         let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
@@ -419,8 +415,7 @@ impl ProcessManager {
                         router.update_pid(&name, new_pid);
 
                         // Create new cancel channel for this iteration
-                        let (new_cancel_tx, new_cancel_rx) =
-                            tokio::sync::watch::channel(false);
+                        let (new_cancel_tx, new_cancel_rx) = tokio::sync::watch::channel(false);
                         cancel_rx = new_cancel_rx;
 
                         let new_handle = Arc::new(Mutex::new(ProcessHandle {
@@ -470,10 +465,7 @@ async fn spawn_child(
         // Single string command — run via shell
         #[cfg(unix)]
         {
-            (
-                "sh".to_string(),
-                vec!["-c".to_string(), command[0].clone()],
-            )
+            ("sh".to_string(), vec!["-c".to_string(), command[0].clone()])
         }
         #[cfg(not(unix))]
         {
@@ -507,9 +499,9 @@ async fn spawn_child(
         });
     }
 
-    let child = cmd.spawn().with_context(|| {
-        format!("failed to spawn '{}' in '{}'", program, cwd.display())
-    })?;
+    let child = cmd
+        .spawn()
+        .with_context(|| format!("failed to spawn '{}' in '{}'", program, cwd.display()))?;
 
     let pid = child
         .id()

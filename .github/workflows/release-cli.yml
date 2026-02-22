@@ -31,10 +31,10 @@ jobs:
             name: portzero-linux-aarch64
             cross: true
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-latest
             name: portzero-darwin-x86_64
           - target: aarch64-apple-darwin
-            os: macos-14
+            os: macos-latest
             name: portzero-darwin-aarch64
 
     runs-on: ${{ matrix.os }}

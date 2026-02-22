@@ -65,10 +65,7 @@ pub async fn logs(name: &str, lines: usize, follow: bool, state_dir: &Path) -> R
     loop {
         match subscription.next_event().await {
             Some(portzero_core::types::WsEvent::LogLine {
-                app,
-                stream,
-                line,
-                ..
+                app, stream, line, ..
             }) if app == name => {
                 print_log_line(name, &stream, &line);
             }

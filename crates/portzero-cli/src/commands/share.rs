@@ -73,11 +73,7 @@ pub async fn execute_via_daemon(cmd: &ShareCommand, state_dir: &Path) -> anyhow:
             println!("Starting tunnel for '{}'...", app);
 
             let info = client
-                .share(
-                    app,
-                    subdomain.as_deref(),
-                    relay.as_deref(),
-                )
+                .share(app, subdomain.as_deref(), relay.as_deref())
                 .await?;
 
             println!();

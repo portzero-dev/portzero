@@ -12,8 +12,8 @@ use crate::router::Router;
 use crate::store::Store;
 use crate::tunnel::TunnelManager;
 use crate::types::{
-    CreateMockRule, LogLine, LogStream,
-    MockRule, NetworkProfile, SetNetworkProfile, UpdateMockRule, WsEvent,
+    CreateMockRule, LogLine, LogStream, MockRule, NetworkProfile, SetNetworkProfile,
+    UpdateMockRule, WsEvent,
 };
 use crate::ws::WsHub;
 use serde::{Deserialize, Serialize};
@@ -73,10 +73,7 @@ pub enum ControlRequest {
 
     /// Get logs for an app.
     #[serde(rename = "get_logs")]
-    GetLogs {
-        name: String,
-        lines: Option<usize>,
-    },
+    GetLogs { name: String, lines: Option<usize> },
 
     /// Set a network simulation profile for an app.
     #[serde(rename = "set_network_profile")]
@@ -94,7 +91,6 @@ pub enum ControlRequest {
     ClearNetworkProfile { app_name: String },
 
     // -- Mocks --
-
     #[serde(rename = "list_mocks")]
     ListMocks,
 
@@ -111,7 +107,6 @@ pub enum ControlRequest {
     ToggleMock { id: String },
 
     // -- Tunnels --
-
     /// Start a tunnel for an app.
     #[serde(rename = "share")]
     Share {
@@ -169,7 +164,9 @@ pub enum ControlResponse {
     Tunnel { tunnel: crate::types::TunnelInfo },
 
     #[serde(rename = "tunnels")]
-    Tunnels { tunnels: Vec<crate::types::TunnelInfo> },
+    Tunnels {
+        tunnels: Vec<crate::types::TunnelInfo>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -221,9 +218,18 @@ pub async fn serve_control_socket(
                 let tunnel_manager = tunnel_manager.clone();
                 tokio::spawn(async move {
                     if let Err(e) = handle_client(
-                        stream, &router, &ws_hub, &log_store, &network_sim,
-                        &mock_engine, &store, &tunnel_manager, proxy_port,
-                    ).await {
+                        stream,
+                        &router,
+                        &ws_hub,
+                        &log_store,
+                        &network_sim,
+                        &mock_engine,
+                        &store,
+                        &tunnel_manager,
+                        proxy_port,
+                    )
+                    .await
+                    {
                         tracing::debug!("Control client error: {e}");
                     }
                 });
@@ -287,7 +293,18 @@ async fn handle_client(
                 return Ok(()); // Connection is done after subscribe mode
             }
             Ok(req) => {
-                let response = process_request(req, router, ws_hub, log_store, network_sim, mock_engine, store, tunnel_manager, proxy_port).await;
+                let response = process_request(
+                    req,
+                    router,
+                    ws_hub,
+                    log_store,
+                    network_sim,
+                    mock_engine,
+                    store,
+                    tunnel_manager,
+                    proxy_port,
+                )
+                .await;
                 let mut json = serde_json::to_string(&response)?;
                 json.push('\n');
                 writer.write_all(json.as_bytes()).await?;
@@ -326,13 +343,7 @@ async fn process_request(
             command,
             cwd,
         } => {
-            router.register(
-                name.clone(),
-                port,
-                pid,
-                command,
-                PathBuf::from(cwd),
-            );
+            router.register(name.clone(), port, pid, command, PathBuf::from(cwd));
 
             ws_hub.broadcast(WsEvent::AppRegistered {
                 name: name.clone(),
@@ -351,9 +362,7 @@ async fn process_request(
         ControlRequest::Deregister { name } => {
             router.deregister(&name);
 
-            ws_hub.broadcast(WsEvent::AppRemoved {
-                name: name.clone(),
-            });
+            ws_hub.broadcast(WsEvent::AppRemoved { name: name.clone() });
 
             tracing::info!(name = %name, "App deregistered via control socket");
 
@@ -427,14 +436,16 @@ async fn process_request(
         }
 
         ControlRequest::GetNetworkProfile { app_name } => {
-            let profile = network_sim.get_profile(&app_name).unwrap_or_else(|| NetworkProfile {
-                app_name,
-                latency_ms: None,
-                jitter_ms: None,
-                packet_loss_rate: 0.0,
-                bandwidth_limit: None,
-                path_filter: None,
-            });
+            let profile = network_sim
+                .get_profile(&app_name)
+                .unwrap_or_else(|| NetworkProfile {
+                    app_name,
+                    latency_ms: None,
+                    jitter_ms: None,
+                    packet_loss_rate: 0.0,
+                    bandwidth_limit: None,
+                    path_filter: None,
+                });
             ControlResponse::NetworkProfileResp { profile }
         }
 
@@ -447,15 +458,18 @@ async fn process_request(
         }
 
         // -- Mocks --
-
-        ControlRequest::ListMocks => {
-            ControlResponse::Mocks { mocks: mock_engine.list_mocks() }
-        }
+        ControlRequest::ListMocks => ControlResponse::Mocks {
+            mocks: mock_engine.list_mocks(),
+        },
 
         ControlRequest::CreateMock { rule } => {
             let mock = mock_engine.add_mock(
-                rule.app_name, rule.method, rule.path_pattern,
-                rule.status_code, rule.response_headers, rule.response_body,
+                rule.app_name,
+                rule.method,
+                rule.path_pattern,
+                rule.status_code,
+                rule.response_headers,
+                rule.response_body,
             );
             let _ = store.insert_mock(&mock);
             ControlResponse::Mock { mock }
@@ -463,9 +477,13 @@ async fn process_request(
 
         ControlRequest::UpdateMock { id, updates } => {
             match mock_engine.update_mock(
-                &id, updates.method, updates.path_pattern,
-                updates.status_code, updates.response_headers,
-                updates.response_body, updates.enabled,
+                &id,
+                updates.method,
+                updates.path_pattern,
+                updates.status_code,
+                updates.response_headers,
+                updates.response_body,
+                updates.enabled,
             ) {
                 Some(mock) => ControlResponse::Mock { mock },
                 None => ControlResponse::Error {
@@ -477,7 +495,9 @@ async fn process_request(
         ControlRequest::DeleteMock { id } => {
             if mock_engine.remove_mock(&id) {
                 let _ = store.delete_mock(&id);
-                ControlResponse::Ok { message: format!("deleted mock {id}") }
+                ControlResponse::Ok {
+                    message: format!("deleted mock {id}"),
+                }
             } else {
                 ControlResponse::Error {
                     message: format!("mock '{id}' not found"),
@@ -496,18 +516,19 @@ async fn process_request(
         }
 
         // -- Tunnels --
-
-        ControlRequest::Share { name, subdomain, relay } => {
+        ControlRequest::Share {
+            name,
+            subdomain,
+            relay,
+        } => {
             // Look up the app's port from the router
             let port = router.get_port(&name);
             match port {
                 Some(port) => {
-                    match tunnel_manager.share(
-                        &name,
-                        port,
-                        subdomain.as_deref(),
-                        relay.as_deref(),
-                    ).await {
+                    match tunnel_manager
+                        .share(&name, port, subdomain.as_deref(), relay.as_deref())
+                        .await
+                    {
                         Ok(info) => ControlResponse::Tunnel { tunnel: info },
                         Err(e) => ControlResponse::Error {
                             message: format!("{}", e),
@@ -520,16 +541,14 @@ async fn process_request(
             }
         }
 
-        ControlRequest::Unshare { name } => {
-            match tunnel_manager.unshare(&name).await {
-                Ok(()) => ControlResponse::Ok {
-                    message: format!("tunnel stopped for {name}"),
-                },
-                Err(e) => ControlResponse::Error {
-                    message: format!("{}", e),
-                },
-            }
-        }
+        ControlRequest::Unshare { name } => match tunnel_manager.unshare(&name).await {
+            Ok(()) => ControlResponse::Ok {
+                message: format!("tunnel stopped for {name}"),
+            },
+            Err(e) => ControlResponse::Error {
+                message: format!("{}", e),
+            },
+        },
 
         ControlRequest::ListTunnels => {
             let tunnels = tunnel_manager.list_tunnels();
@@ -590,9 +609,12 @@ impl ControlClient {
 
     /// Convenience: allocate a port for an app.
     pub async fn allocate_port(&mut self, name: &str) -> anyhow::Result<u16> {
-        match self.request(&ControlRequest::AllocatePort {
-            name: name.to_string(),
-        }).await? {
+        match self
+            .request(&ControlRequest::AllocatePort {
+                name: name.to_string(),
+            })
+            .await?
+        {
             ControlResponse::Port { port } => Ok(port),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -608,13 +630,16 @@ impl ControlClient {
         command: &[String],
         cwd: &Path,
     ) -> anyhow::Result<()> {
-        match self.request(&ControlRequest::Register {
-            name: name.to_string(),
-            port,
-            pid,
-            command: command.to_vec(),
-            cwd: cwd.display().to_string(),
-        }).await? {
+        match self
+            .request(&ControlRequest::Register {
+                name: name.to_string(),
+                port,
+                pid,
+                command: command.to_vec(),
+                cwd: cwd.display().to_string(),
+            })
+            .await?
+        {
             ControlResponse::Ok { .. } => Ok(()),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -623,9 +648,12 @@ impl ControlClient {
 
     /// Convenience: deregister an app.
     pub async fn deregister(&mut self, name: &str) -> anyhow::Result<()> {
-        match self.request(&ControlRequest::Deregister {
-            name: name.to_string(),
-        }).await? {
+        match self
+            .request(&ControlRequest::Deregister {
+                name: name.to_string(),
+            })
+            .await?
+        {
             ControlResponse::Ok { .. } => Ok(()),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -634,11 +662,14 @@ impl ControlClient {
 
     /// Convenience: append a log line for an app.
     pub async fn log_append(&mut self, name: &str, stream: &str, line: &str) -> anyhow::Result<()> {
-        match self.request(&ControlRequest::LogAppend {
-            name: name.to_string(),
-            stream: stream.to_string(),
-            line: line.to_string(),
-        }).await? {
+        match self
+            .request(&ControlRequest::LogAppend {
+                name: name.to_string(),
+                stream: stream.to_string(),
+                line: line.to_string(),
+            })
+            .await?
+        {
             ControlResponse::Ok { .. } => Ok(()),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -646,11 +677,18 @@ impl ControlClient {
     }
 
     /// Convenience: get logs for an app.
-    pub async fn get_logs(&mut self, name: &str, lines: Option<usize>) -> anyhow::Result<Vec<LogLine>> {
-        match self.request(&ControlRequest::GetLogs {
-            name: name.to_string(),
-            lines,
-        }).await? {
+    pub async fn get_logs(
+        &mut self,
+        name: &str,
+        lines: Option<usize>,
+    ) -> anyhow::Result<Vec<LogLine>> {
+        match self
+            .request(&ControlRequest::GetLogs {
+                name: name.to_string(),
+                lines,
+            })
+            .await?
+        {
             ControlResponse::Logs { lines } => Ok(lines),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -663,10 +701,13 @@ impl ControlClient {
         app_name: &str,
         profile: SetNetworkProfile,
     ) -> anyhow::Result<NetworkProfile> {
-        match self.request(&ControlRequest::SetNetworkProfile {
-            app_name: app_name.to_string(),
-            profile,
-        }).await? {
+        match self
+            .request(&ControlRequest::SetNetworkProfile {
+                app_name: app_name.to_string(),
+                profile,
+            })
+            .await?
+        {
             ControlResponse::NetworkProfileResp { profile } => Ok(profile),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -675,9 +716,12 @@ impl ControlClient {
 
     /// Convenience: get the network simulation profile for an app.
     pub async fn get_network_profile(&mut self, app_name: &str) -> anyhow::Result<NetworkProfile> {
-        match self.request(&ControlRequest::GetNetworkProfile {
-            app_name: app_name.to_string(),
-        }).await? {
+        match self
+            .request(&ControlRequest::GetNetworkProfile {
+                app_name: app_name.to_string(),
+            })
+            .await?
+        {
             ControlResponse::NetworkProfileResp { profile } => Ok(profile),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -686,9 +730,12 @@ impl ControlClient {
 
     /// Convenience: clear the network simulation profile for an app.
     pub async fn clear_network_profile(&mut self, app_name: &str) -> anyhow::Result<()> {
-        match self.request(&ControlRequest::ClearNetworkProfile {
-            app_name: app_name.to_string(),
-        }).await? {
+        match self
+            .request(&ControlRequest::ClearNetworkProfile {
+                app_name: app_name.to_string(),
+            })
+            .await?
+        {
             ControlResponse::Ok { .. } => Ok(()),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -713,8 +760,18 @@ impl ControlClient {
         }
     }
 
-    pub async fn update_mock(&mut self, id: &str, updates: UpdateMockRule) -> anyhow::Result<MockRule> {
-        match self.request(&ControlRequest::UpdateMock { id: id.to_string(), updates }).await? {
+    pub async fn update_mock(
+        &mut self,
+        id: &str,
+        updates: UpdateMockRule,
+    ) -> anyhow::Result<MockRule> {
+        match self
+            .request(&ControlRequest::UpdateMock {
+                id: id.to_string(),
+                updates,
+            })
+            .await?
+        {
             ControlResponse::Mock { mock } => Ok(mock),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -722,7 +779,10 @@ impl ControlClient {
     }
 
     pub async fn delete_mock(&mut self, id: &str) -> anyhow::Result<()> {
-        match self.request(&ControlRequest::DeleteMock { id: id.to_string() }).await? {
+        match self
+            .request(&ControlRequest::DeleteMock { id: id.to_string() })
+            .await?
+        {
             ControlResponse::Ok { .. } => Ok(()),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -730,7 +790,10 @@ impl ControlClient {
     }
 
     pub async fn toggle_mock(&mut self, id: &str) -> anyhow::Result<MockRule> {
-        match self.request(&ControlRequest::ToggleMock { id: id.to_string() }).await? {
+        match self
+            .request(&ControlRequest::ToggleMock { id: id.to_string() })
+            .await?
+        {
             ControlResponse::Mock { mock } => Ok(mock),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -746,11 +809,14 @@ impl ControlClient {
         subdomain: Option<&str>,
         relay: Option<&str>,
     ) -> anyhow::Result<crate::types::TunnelInfo> {
-        match self.request(&ControlRequest::Share {
-            name: name.to_string(),
-            subdomain: subdomain.map(|s| s.to_string()),
-            relay: relay.map(|s| s.to_string()),
-        }).await? {
+        match self
+            .request(&ControlRequest::Share {
+                name: name.to_string(),
+                subdomain: subdomain.map(|s| s.to_string()),
+                relay: relay.map(|s| s.to_string()),
+            })
+            .await?
+        {
             ControlResponse::Tunnel { tunnel } => Ok(tunnel),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),
@@ -759,9 +825,12 @@ impl ControlClient {
 
     /// Stop a tunnel for an app.
     pub async fn unshare(&mut self, name: &str) -> anyhow::Result<()> {
-        match self.request(&ControlRequest::Unshare {
-            name: name.to_string(),
-        }).await? {
+        match self
+            .request(&ControlRequest::Unshare {
+                name: name.to_string(),
+            })
+            .await?
+        {
             ControlResponse::Ok { .. } => Ok(()),
             ControlResponse::Error { message } => anyhow::bail!("{message}"),
             other => anyhow::bail!("unexpected response: {:?}", other),

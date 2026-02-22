@@ -49,7 +49,11 @@ pub async fn get_daemon_info(state_dir: &Path) -> DaemonRunInfo {
     // - The daemon is starting up / hung — show as not-responding
     DaemonRunInfo {
         running: responsive,
-        pid: if responsive || process_alive { pid } else { None },
+        pid: if responsive || process_alive {
+            pid
+        } else {
+            None
+        },
         responsive,
     }
 }
@@ -133,7 +137,10 @@ pub async fn stop_daemon(state_dir: &Path) -> Result<()> {
     if !responsive {
         // Daemon isn't running — just clean up stale files
         if let Some(pid) = pid {
-            tracing::debug!(pid = pid, "PID file exists but daemon not responsive, cleaning up");
+            tracing::debug!(
+                pid = pid,
+                "PID file exists but daemon not responsive, cleaning up"
+            );
         }
         let _ = fs::remove_file(pid_file_path(state_dir)).await;
         let _ = fs::remove_file(state_dir.join("portzero.sock")).await;
@@ -263,9 +270,7 @@ pub fn find_portzero_binary() -> Result<PathBuf> {
         }
     }
 
-    anyhow::bail!(
-        "Could not find portzero binary. Install the CLI first (Settings → CLI Tool)."
-    )
+    anyhow::bail!("Could not find portzero binary. Install the CLI first (Settings → CLI Tool).")
 }
 
 /// Check if a process with the given PID is alive.

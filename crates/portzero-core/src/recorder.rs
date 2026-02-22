@@ -47,7 +47,13 @@ impl Recorder {
 
     /// Begin recording a new request. Returns a `RecordingSession` that
     /// collects data incrementally and finalizes on `complete()`.
-    pub fn start_recording(&self, app_name: &str, method: &str, url: &str, path: &str) -> RecordingSession {
+    pub fn start_recording(
+        &self,
+        app_name: &str,
+        method: &str,
+        url: &str,
+        path: &str,
+    ) -> RecordingSession {
         let id = Uuid::new_v4().to_string();
 
         self.ws_hub.broadcast(WsEvent::RequestStart {
@@ -317,8 +323,7 @@ mod tests {
         let ws_hub = Arc::new(WsHub::new());
         let recorder = Recorder::new(store.clone(), ws_hub);
 
-        let mut session =
-            recorder.start_recording("test-app", "POST", "http://test/api", "/api");
+        let mut session = recorder.start_recording("test-app", "POST", "http://test/api", "/api");
 
         // Append body up to cap
         let chunk = vec![0u8; 100_000];
@@ -337,16 +342,21 @@ mod tests {
         let mut rx = ws_hub.subscribe();
         let recorder = Recorder::new(store.clone(), ws_hub);
 
-        let mut session =
-            recorder.start_recording("my-app", "GET", "http://my-app.localhost/api/users", "/api/users");
+        let mut session = recorder.start_recording(
+            "my-app",
+            "GET",
+            "http://my-app.localhost/api/users",
+            "/api/users",
+        );
 
         // Consume the RequestStart event
         let _start_event = rx.recv().await.unwrap();
 
         session.set_response_status(200);
-        session.set_response_headers(HashMap::from([
-            ("content-type".to_string(), "application/json".to_string()),
-        ]));
+        session.set_response_headers(HashMap::from([(
+            "content-type".to_string(),
+            "application/json".to_string(),
+        )]));
         session.append_response_body(b"{\"users\":[]}");
 
         session.complete().await;

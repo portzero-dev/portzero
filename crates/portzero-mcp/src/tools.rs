@@ -238,7 +238,10 @@ impl ToolResult {
     }
 
     pub fn json(value: &impl Serialize) -> Self {
-        Self::text(serde_json::to_string_pretty(value).unwrap_or_else(|e| format!("Serialization error: {}", e)))
+        Self::text(
+            serde_json::to_string_pretty(value)
+                .unwrap_or_else(|e| format!("Serialization error: {}", e)),
+        )
     }
 
     pub fn error(msg: impl Into<String>) -> Self {
@@ -297,7 +300,9 @@ async fn tool_list_apps(pm: &dyn ProcessManagerOps) -> ToolResult {
             name: app.name.clone(),
             status: match &app.status {
                 AppStatus::Running => "running".to_string(),
-                AppStatus::Crashed { exit_code, .. } => format!("crashed (exit code {})", exit_code),
+                AppStatus::Crashed { exit_code, .. } => {
+                    format!("crashed (exit code {})", exit_code)
+                }
                 AppStatus::Stopped => "stopped".to_string(),
             },
             port: app.port,
@@ -316,10 +321,7 @@ async fn tool_get_app_logs(args: &Value, pm: &dyn ProcessManagerOps) -> ToolResu
         None => return ToolResult::error("Missing required parameter: app"),
     };
 
-    let lines = args
-        .get("lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(50) as usize;
+    let lines = args.get("lines").and_then(|v| v.as_u64()).unwrap_or(50) as usize;
 
     match pm.get_logs(app_name, lines) {
         Some(logs) => {
@@ -368,10 +370,7 @@ async fn tool_get_recent_requests(args: &Value, ctx: &ToolContext) -> ToolResult
         filter.search = Some(search.to_string());
     }
 
-    let limit = args
-        .get("limit")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(20) as usize;
+    let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(20) as usize;
     filter.limit = Some(limit);
 
     // Handle status_range filter (e.g. "5xx")
@@ -400,7 +399,9 @@ async fn tool_get_recent_requests(args: &Value, ctx: &ToolContext) -> ToolResult
                     _ => 0,
                 };
                 if range_start > 0 {
-                    requests.retain(|r| r.status_code >= range_start && r.status_code < range_start + 100);
+                    requests.retain(|r| {
+                        r.status_code >= range_start && r.status_code < range_start + 100
+                    });
                 }
             }
 

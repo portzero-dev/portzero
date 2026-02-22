@@ -33,10 +33,9 @@ pub async fn serve_dashboard(req: Request) -> Response {
             // SPA fallback: serve index.html for any unmatched path
             // (client-side routing handles the rest)
             match DashboardAssets::get("index.html") {
-                Some(index) => Html(
-                    String::from_utf8_lossy(&index.data).to_string(),
-                )
-                .into_response(),
+                Some(index) => {
+                    Html(String::from_utf8_lossy(&index.data).to_string()).into_response()
+                }
                 None => (StatusCode::NOT_FOUND, "Dashboard not found").into_response(),
             }
         }

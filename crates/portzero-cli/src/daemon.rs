@@ -48,7 +48,10 @@ impl AppState {
             for mock in mocks {
                 mock_engine.add_mock_raw(mock);
             }
-            tracing::info!("Loaded {} mocks from database", mock_engine.list_mocks().len());
+            tracing::info!(
+                "Loaded {} mocks from database",
+                mock_engine.list_mocks().len()
+            );
         }
 
         Ok(Self {
@@ -102,10 +105,7 @@ pub async fn start(_daemonize: bool, state_dir: &Path) -> Result<()> {
         app_state.mock_engine.clone(),
     );
 
-    println!(
-        "PortZero proxy starting on http://localhost:{}",
-        proxy_port
-    );
+    println!("PortZero proxy starting on http://localhost:{}", proxy_port);
     println!("Dashboard: http://_portzero.localhost:{}", proxy_port);
     println!(
         "Control socket: {}",
@@ -120,12 +120,10 @@ pub async fn start(_daemonize: bool, state_dir: &Path) -> Result<()> {
     let ctrl_store = app_state.store.clone();
     let ctrl_state_dir = state_dir.to_path_buf();
     let db_path = state_dir.join("portzero.db");
-    let log_store = Arc::new(
-        LogStore::open(&db_path).unwrap_or_else(|e| {
-            tracing::warn!("Failed to open persistent log store: {e}, falling back to in-memory");
-            LogStore::new()
-        })
-    );
+    let log_store = Arc::new(LogStore::open(&db_path).unwrap_or_else(|e| {
+        tracing::warn!("Failed to open persistent log store: {e}, falling back to in-memory");
+        LogStore::new()
+    }));
 
     // Create tunnel manager — resolves token from env var / config / credentials
     #[cfg(feature = "tunnel")]
@@ -135,17 +133,24 @@ pub async fn start(_daemonize: bool, state_dir: &Path) -> Result<()> {
         Some((*app_state.ws_hub).clone()),
     ));
     #[cfg(not(feature = "tunnel"))]
-    let tunnel_manager = Arc::new(portzero_core::tunnel::TunnelManager::stub(
-        Some((*app_state.ws_hub).clone()),
-    ));
+    let tunnel_manager = Arc::new(portzero_core::tunnel::TunnelManager::stub(Some(
+        (*app_state.ws_hub).clone(),
+    )));
 
     let ctrl_tunnel_manager = tunnel_manager.clone();
     tokio::spawn(async move {
-        if let Err(e) =
-            control::serve_control_socket(
-                &ctrl_state_dir, ctrl_router, ctrl_ws_hub, log_store,
-                ctrl_network_sim, ctrl_mock_engine, ctrl_store, ctrl_tunnel_manager, proxy_port,
-            ).await
+        if let Err(e) = control::serve_control_socket(
+            &ctrl_state_dir,
+            ctrl_router,
+            ctrl_ws_hub,
+            log_store,
+            ctrl_network_sim,
+            ctrl_mock_engine,
+            ctrl_store,
+            ctrl_tunnel_manager,
+            proxy_port,
+        )
+        .await
         {
             tracing::error!("Control socket error: {e}");
         }
@@ -225,10 +230,7 @@ pub async fn status(state_dir: &Path) -> Result<()> {
             println!("Daemon is running.");
 
             // List apps
-            match client
-                .request(&control::ControlRequest::List)
-                .await
-            {
+            match client.request(&control::ControlRequest::List).await {
                 Ok(control::ControlResponse::Apps { apps }) => {
                     if apps.is_empty() {
                         println!("No apps registered.");

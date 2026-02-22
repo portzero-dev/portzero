@@ -8,10 +8,10 @@
 
 use crate::state::AppState;
 use axum::{
-    Json,
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
+    Json,
 };
 use portzero_core::store::RequestFilter as StoreFilter;
 use portzero_core::types::*;
@@ -52,12 +52,13 @@ pub async fn list_requests(
 ) -> impl IntoResponse {
     let filter = to_store_filter(&params);
     match state.store.list_request_summaries(&filter) {
-        Ok(summaries) => {
-            Json(summaries).into_response()
-        }
+        Ok(summaries) => Json(summaries).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiError::internal(format!("Failed to list requests: {}", e))),
+            Json(ApiError::internal(format!(
+                "Failed to list requests: {}",
+                e
+            ))),
         )
             .into_response(),
     }
@@ -101,10 +102,7 @@ pub async fn replay_request(
         Ok(None) => {
             return (
                 StatusCode::NOT_FOUND,
-                Json(ApiError::not_found(format!(
-                    "Request '{}' not found",
-                    id
-                ))),
+                Json(ApiError::not_found(format!("Request '{}' not found", id))),
             )
                 .into_response();
         }
@@ -161,11 +159,7 @@ pub async fn replay_request(
         match req_builder.send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
-                let status_msg = resp
-                    .status()
-                    .canonical_reason()
-                    .unwrap_or("")
-                    .to_string();
+                let status_msg = resp.status().canonical_reason().unwrap_or("").to_string();
                 let content_type = resp
                     .headers()
                     .get("content-type")
@@ -261,10 +255,7 @@ pub async fn diff_requests(
         Ok(None) => {
             return (
                 StatusCode::NOT_FOUND,
-                Json(ApiError::not_found(format!(
-                    "Request '{}' not found",
-                    id1
-                ))),
+                Json(ApiError::not_found(format!("Request '{}' not found", id1))),
             )
                 .into_response();
         }
@@ -282,10 +273,7 @@ pub async fn diff_requests(
         Ok(None) => {
             return (
                 StatusCode::NOT_FOUND,
-                Json(ApiError::not_found(format!(
-                    "Request '{}' not found",
-                    id2
-                ))),
+                Json(ApiError::not_found(format!("Request '{}' not found", id2))),
             )
                 .into_response();
         }

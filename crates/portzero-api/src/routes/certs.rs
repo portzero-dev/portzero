@@ -5,12 +5,7 @@
 //! POST /api/certs/untrust — Remove the CA from the system store
 
 use crate::state::AppState;
-use axum::{
-    Json,
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use portzero_core::certs;
 use serde::Serialize;
 

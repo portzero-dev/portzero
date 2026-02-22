@@ -8,10 +8,10 @@
 
 use crate::state::AppState;
 use axum::{
-    Json,
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
+    Json,
 };
 use portzero_core::types::*;
 use serde::Deserialize;
@@ -27,10 +27,7 @@ pub async fn list_apps(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// GET /api/apps/:name — Get a single app's details.
-pub async fn get_app(
-    Path(name): Path<String>,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn get_app(Path(name): Path<String>, State(state): State<AppState>) -> impl IntoResponse {
     match state.apps.get(&name) {
         Some(app) => Json(serde_json::to_value(app.value()).unwrap()).into_response(),
         None => (
@@ -77,9 +74,9 @@ pub async fn stop_app(
 ) -> impl IntoResponse {
     match state.apps.get(&name) {
         Some(_) => {
-            state.ws_hub.broadcast(WsEvent::AppRemoved {
-                name: name.clone(),
-            });
+            state
+                .ws_hub
+                .broadcast(WsEvent::AppRemoved { name: name.clone() });
             (
                 StatusCode::OK,
                 Json(serde_json::json!({"status": "stop_requested", "app": name})),

@@ -5,10 +5,10 @@
 
 use crate::state::AppState;
 use axum::{
-    Json,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
+    Json,
 };
 use portzero_core::types::*;
 
@@ -75,9 +75,7 @@ pub async fn stop_tunnel(
 ) -> impl IntoResponse {
     match state.tunnels.remove(&name) {
         Some(_) => {
-            state.ws_hub.broadcast(WsEvent::TunnelStopped {
-                app: name,
-            });
+            state.ws_hub.broadcast(WsEvent::TunnelStopped { app: name });
             StatusCode::NO_CONTENT.into_response()
         }
         None => (

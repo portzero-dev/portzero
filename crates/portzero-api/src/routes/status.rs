@@ -3,7 +3,7 @@
 //! GET /api/status — Daemon health + stats
 
 use crate::state::AppState;
-use axum::{Json, extract::State, response::IntoResponse};
+use axum::{extract::State, response::IntoResponse, Json};
 use portzero_core::types::*;
 
 /// GET /api/status — Get daemon health and stats.

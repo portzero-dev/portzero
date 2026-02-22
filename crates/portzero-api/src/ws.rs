@@ -5,17 +5,17 @@
 
 use crate::state::AppState;
 use axum::{
-    extract::{State, WebSocketUpgrade, ws::{Message, WebSocket}},
+    extract::{
+        ws::{Message, WebSocket},
+        State, WebSocketUpgrade,
+    },
     response::IntoResponse,
 };
 use futures_util::{SinkExt, StreamExt};
 use tracing;
 
 /// Upgrade HTTP to WebSocket and start streaming events.
-pub async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_ws_connection(socket, state))
 }
 
@@ -23,7 +23,10 @@ async fn handle_ws_connection(socket: WebSocket, state: AppState) {
     let (mut sender, mut receiver) = socket.split();
     let mut rx = state.ws_hub.subscribe();
 
-    tracing::info!("WebSocket client connected (total: {})", state.ws_hub.subscriber_count());
+    tracing::info!(
+        "WebSocket client connected (total: {})",
+        state.ws_hub.subscriber_count()
+    );
 
     // Spawn a task to forward broadcast events to this WebSocket client.
     let send_task = tokio::spawn(async move {

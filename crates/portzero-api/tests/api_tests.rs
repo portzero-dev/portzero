@@ -23,7 +23,14 @@ fn test_server_with_state() -> (TestServer, AppState) {
 }
 
 /// Helper: insert a test request record into the store.
-fn insert_test_request(state: &AppState, id: &str, app: &str, method: &str, path: &str, status: u16) {
+fn insert_test_request(
+    state: &AppState,
+    id: &str,
+    app: &str,
+    method: &str,
+    path: &str,
+    status: u16,
+) {
     let record = portzero_core::types::RequestRecord {
         id: id.to_string(),
         app_name: app.to_string(),
@@ -726,10 +733,7 @@ async fn test_start_tunnel() {
     let (server, state) = test_server_with_state();
     register_test_app(&state, "web");
 
-    let resp = server
-        .post("/api/apps/web/share")
-        .json(&json!({}))
-        .await;
+    let resp = server.post("/api/apps/web/share").json(&json!({})).await;
     resp.assert_status(axum::http::StatusCode::CREATED);
 
     let body: Value = resp.json();
@@ -750,10 +754,7 @@ async fn test_start_tunnel_custom_subdomain() {
     resp.assert_status(axum::http::StatusCode::CREATED);
 
     let body: Value = resp.json();
-    assert!(body["public_url"]
-        .as_str()
-        .unwrap()
-        .contains("my-custom"));
+    assert!(body["public_url"].as_str().unwrap().contains("my-custom"));
 }
 
 #[cfg(feature = "tunnel")]
@@ -763,16 +764,10 @@ async fn test_start_tunnel_conflict() {
     register_test_app(&state, "web");
 
     // First share succeeds
-    server
-        .post("/api/apps/web/share")
-        .json(&json!({}))
-        .await;
+    server.post("/api/apps/web/share").json(&json!({})).await;
 
     // Second share conflicts
-    let resp = server
-        .post("/api/apps/web/share")
-        .json(&json!({}))
-        .await;
+    let resp = server.post("/api/apps/web/share").json(&json!({})).await;
     resp.assert_status(axum::http::StatusCode::CONFLICT);
 }
 
@@ -783,10 +778,7 @@ async fn test_stop_tunnel() {
     register_test_app(&state, "web");
 
     // Start tunnel
-    server
-        .post("/api/apps/web/share")
-        .json(&json!({}))
-        .await;
+    server.post("/api/apps/web/share").json(&json!({})).await;
 
     // Stop tunnel
     let resp = server.delete("/api/apps/web/share").await;

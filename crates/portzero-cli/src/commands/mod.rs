@@ -4,17 +4,17 @@
 //! Task 4 owns: mock, throttle, share
 
 // Task 1 commands
-pub mod run;
 pub mod list;
-pub mod up;
 pub mod logs;
+pub mod run;
 pub mod trust;
+pub mod up;
 
 // Task 4 commands
 pub mod mock;
-pub mod throttle;
 #[cfg(feature = "tunnel")]
 pub mod share;
+pub mod throttle;
 
 // Auth commands
 #[cfg(feature = "tunnel")]

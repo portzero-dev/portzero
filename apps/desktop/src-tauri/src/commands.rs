@@ -40,7 +40,12 @@ fn get_process_stats(pid: u32) -> (Option<f64>, Option<u64>) {
             let ppid: u32 = parts.next()?.parse().ok()?;
             let cpu: f64 = parts.next()?.parse().ok()?;
             let rss_kb: u64 = parts.next()?.parse().ok()?;
-            Some(Row { pid, ppid, cpu, rss_kb })
+            Some(Row {
+                pid,
+                ppid,
+                cpu,
+                rss_kb,
+            })
         })
         .collect();
 
@@ -157,14 +162,19 @@ pub struct RequestFilters {
 #[tauri::command]
 pub async fn list_apps(state: State<'_, DesktopState>) -> Result<Vec<AppInfo>, String> {
     // First check the local router (for apps managed by the desktop app)
-    let mut apps: Vec<AppInfo> = state.router.list().iter()
+    let mut apps: Vec<AppInfo> = state
+        .router
+        .list()
+        .iter()
         .map(|r| route_to_app_info(r, &state.process_manager))
         .collect();
 
     // Also query the daemon's control socket (for apps managed by CLI)
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
-        if let Ok(portzero_core::control::ControlResponse::Apps { apps: daemon_apps }) =
-            client.request(&portzero_core::control::ControlRequest::List).await
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
+        if let Ok(portzero_core::control::ControlResponse::Apps { apps: daemon_apps }) = client
+            .request(&portzero_core::control::ControlRequest::List)
+            .await
         {
             for entry in daemon_apps {
                 // Avoid duplicates (if the same app is somehow in both)
@@ -201,9 +211,11 @@ pub async fn get_app(state: State<'_, DesktopState>, name: String) -> Result<App
     }
 
     // Try daemon
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
-        if let Ok(portzero_core::control::ControlResponse::Apps { apps }) =
-            client.request(&portzero_core::control::ControlRequest::List).await
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
+        if let Ok(portzero_core::control::ControlResponse::Apps { apps }) = client
+            .request(&portzero_core::control::ControlRequest::List)
+            .await
         {
             if let Some(entry) = apps.iter().find(|a| a.name == name) {
                 let (cpu_percent, memory_bytes) = get_process_stats(entry.pid);
@@ -231,13 +243,21 @@ pub async fn get_app(state: State<'_, DesktopState>, name: String) -> Result<App
 
 #[tauri::command]
 pub async fn restart_app(state: State<'_, DesktopState>, name: String) -> Result<(), String> {
-    state.process_manager.restart(&name).await.map_err(|e| e.to_string())?;
+    state
+        .process_manager
+        .restart(&name)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn stop_app(state: State<'_, DesktopState>, name: String) -> Result<(), String> {
-    state.process_manager.stop(&name).await.map_err(|e| e.to_string())?;
+    state
+        .process_manager
+        .stop(&name)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -254,7 +274,8 @@ pub async fn get_app_logs(
     }
 
     // Fall back to daemon's log store (for CLI-started apps)
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
         match client.get_logs(&name, lines).await {
             Ok(logs) => return Ok(logs),
             Err(e) => {
@@ -267,7 +288,10 @@ pub async fn get_app_logs(
 }
 
 #[tauri::command]
-pub fn get_app_schema(state: State<'_, DesktopState>, name: String) -> Result<InferredSchema, String> {
+pub fn get_app_schema(
+    state: State<'_, DesktopState>,
+    name: String,
+) -> Result<InferredSchema, String> {
     let schema = state.schema_inference.get_schema(&name);
     match schema {
         Some(s) => Ok(s),
@@ -290,12 +314,18 @@ pub fn list_requests(
 ) -> Result<Vec<RequestSummary>, String> {
     let f = filters.unwrap_or_default();
     let store_filter = build_store_filter(&f);
-    state.store.list_request_summaries(&store_filter).map_err(|e| e.to_string())
+    state
+        .store
+        .list_request_summaries(&store_filter)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn get_request(state: State<'_, DesktopState>, id: String) -> Result<RequestRecord, String> {
-    state.store.get_request(&id).map_err(|e| e.to_string())?
+    state
+        .store
+        .get_request(&id)
+        .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Request '{}' not found", id))
 }
 
@@ -305,20 +335,32 @@ pub async fn replay_request(
     id: String,
     options: Option<ReplayRequest>,
 ) -> Result<RequestRecord, String> {
-    let original = state.store.get_request(&id).map_err(|e| e.to_string())?
+    let original = state
+        .store
+        .get_request(&id)
+        .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Request '{}' not found", id))?;
 
-    let method_str = options.as_ref().and_then(|o| o.method.as_deref()).unwrap_or(&original.method);
+    let method_str = options
+        .as_ref()
+        .and_then(|o| o.method.as_deref())
+        .unwrap_or(&original.method);
 
     // Build the replay URL. The stored `url` may be a full URL (http://host/path)
     // or just a path (/path) from older recordings. If it's just a path,
     // reconstruct the full URL using the app name and proxy port.
-    let raw_url = options.as_ref().and_then(|o| o.url.as_deref()).unwrap_or(&original.url);
+    let raw_url = options
+        .as_ref()
+        .and_then(|o| o.url.as_deref())
+        .unwrap_or(&original.url);
     let url_str = if raw_url.starts_with("http://") || raw_url.starts_with("https://") {
         raw_url.to_string()
     } else {
         // Fallback: route through the proxy using <app>.localhost:<port>
-        format!("http://{}.localhost:{}{}", original.app_name, state.proxy_port, raw_url)
+        format!(
+            "http://{}.localhost:{}{}",
+            original.app_name, state.proxy_port, raw_url
+        )
     };
 
     let client = reqwest::Client::builder()
@@ -326,7 +368,8 @@ pub async fn replay_request(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let method: reqwest::Method = method_str.parse()
+    let method: reqwest::Method = method_str
+        .parse()
         .map_err(|e: http::method::InvalidMethod| e.to_string())?;
     let mut req = client.request(method, &url_str);
 
@@ -361,7 +404,9 @@ pub async fn replay_request(
 
     let status_code = resp.status().as_u16();
     let status_message = resp.status().canonical_reason().unwrap_or("").to_string();
-    let resp_headers: HashMap<String, String> = resp.headers().iter()
+    let resp_headers: HashMap<String, String> = resp
+        .headers()
+        .iter()
         .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
         .collect();
     let content_type = resp_headers.get("content-type").cloned();
@@ -388,13 +433,19 @@ pub async fn replay_request(
         parent_id: Some(original.id.clone()),
     };
 
-    state.store.insert_request(&record).map_err(|e| e.to_string())?;
+    state
+        .store
+        .insert_request(&record)
+        .map_err(|e| e.to_string())?;
     Ok(record)
 }
 
 #[tauri::command]
 pub fn clear_requests(state: State<'_, DesktopState>, app: Option<String>) -> Result<(), String> {
-    state.store.clear_requests(app.as_deref()).map_err(|e| e.to_string())?;
+    state
+        .store
+        .clear_requests(app.as_deref())
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -404,9 +455,15 @@ pub fn diff_requests(
     id1: String,
     id2: String,
 ) -> Result<RequestDiff, String> {
-    let left = state.store.get_request(&id1).map_err(|e| e.to_string())?
+    let left = state
+        .store
+        .get_request(&id1)
+        .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Request '{}' not found", id1))?;
-    let right = state.store.get_request(&id2).map_err(|e| e.to_string())?
+    let right = state
+        .store
+        .get_request(&id2)
+        .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Request '{}' not found", id2))?;
     Ok(RequestDiff { left, right })
 }
@@ -417,7 +474,8 @@ pub fn diff_requests(
 
 #[tauri::command]
 pub async fn list_mocks(state: State<'_, DesktopState>) -> Result<Vec<MockRule>, String> {
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
         if let Ok(mocks) = client.list_mocks().await {
             return Ok(mocks);
         }
@@ -426,16 +484,24 @@ pub async fn list_mocks(state: State<'_, DesktopState>) -> Result<Vec<MockRule>,
 }
 
 #[tauri::command]
-pub async fn create_mock(state: State<'_, DesktopState>, rule: CreateMockRule) -> Result<MockRule, String> {
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
+pub async fn create_mock(
+    state: State<'_, DesktopState>,
+    rule: CreateMockRule,
+) -> Result<MockRule, String> {
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
         if let Ok(mock) = client.create_mock(rule.clone()).await {
             return Ok(mock);
         }
     }
     // Fallback to local
     let mock = state.mock_engine.add_mock(
-        rule.app_name, rule.method, rule.path_pattern,
-        rule.status_code, rule.response_headers, rule.response_body,
+        rule.app_name,
+        rule.method,
+        rule.path_pattern,
+        rule.status_code,
+        rule.response_headers,
+        rule.response_body,
     );
     let _ = state.store.insert_mock(&mock);
     Ok(mock)
@@ -447,21 +513,30 @@ pub async fn update_mock(
     id: String,
     updates: UpdateMockRule,
 ) -> Result<MockRule, String> {
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
         if let Ok(mock) = client.update_mock(&id, updates.clone()).await {
             return Ok(mock);
         }
     }
-    state.mock_engine.update_mock(
-        &id, updates.method, updates.path_pattern,
-        updates.status_code, updates.response_headers,
-        updates.response_body, updates.enabled,
-    ).ok_or_else(|| format!("Mock '{}' not found", id))
+    state
+        .mock_engine
+        .update_mock(
+            &id,
+            updates.method,
+            updates.path_pattern,
+            updates.status_code,
+            updates.response_headers,
+            updates.response_body,
+            updates.enabled,
+        )
+        .ok_or_else(|| format!("Mock '{}' not found", id))
 }
 
 #[tauri::command]
 pub async fn delete_mock(state: State<'_, DesktopState>, id: String) -> Result<(), String> {
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
         if let Ok(()) = client.delete_mock(&id).await {
             return Ok(());
         }
@@ -476,13 +551,17 @@ pub async fn delete_mock(state: State<'_, DesktopState>, id: String) -> Result<(
 
 #[tauri::command]
 pub async fn toggle_mock(state: State<'_, DesktopState>, id: String) -> Result<MockRule, String> {
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
         if let Ok(mock) = client.toggle_mock(&id).await {
             return Ok(mock);
         }
     }
     state.mock_engine.toggle_mock(&id);
-    state.mock_engine.get_mock(&id).ok_or_else(|| format!("Mock '{}' not found", id))
+    state
+        .mock_engine
+        .get_mock(&id)
+        .ok_or_else(|| format!("Mock '{}' not found", id))
 }
 
 // ---------------------------------------------------------------------------
@@ -490,9 +569,13 @@ pub async fn toggle_mock(state: State<'_, DesktopState>, id: String) -> Result<M
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub async fn get_network_profile(state: State<'_, DesktopState>, app: String) -> Result<NetworkProfile, String> {
+pub async fn get_network_profile(
+    state: State<'_, DesktopState>,
+    app: String,
+) -> Result<NetworkProfile, String> {
     // Try forwarding to the daemon (where the proxy's NetworkSim lives)
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
         match client.get_network_profile(&app).await {
             Ok(profile) => return Ok(profile),
             Err(e) => tracing::debug!("Failed to get network profile from daemon: {e}"),
@@ -500,14 +583,17 @@ pub async fn get_network_profile(state: State<'_, DesktopState>, app: String) ->
     }
 
     // Fallback to local (for when daemon isn't running)
-    Ok(state.network_sim.get_profile(&app).unwrap_or_else(|| NetworkProfile {
-        app_name: app,
-        latency_ms: None,
-        jitter_ms: None,
-        packet_loss_rate: 0.0,
-        bandwidth_limit: None,
-        path_filter: None,
-    }))
+    Ok(state
+        .network_sim
+        .get_profile(&app)
+        .unwrap_or_else(|| NetworkProfile {
+            app_name: app,
+            latency_ms: None,
+            jitter_ms: None,
+            packet_loss_rate: 0.0,
+            bandwidth_limit: None,
+            path_filter: None,
+        }))
 }
 
 #[tauri::command]
@@ -517,7 +603,8 @@ pub async fn update_network_profile(
     profile: SetNetworkProfile,
 ) -> Result<NetworkProfile, String> {
     // Forward to the daemon so the proxy applies the simulation
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
         match client.set_network_profile(&app, profile.clone()).await {
             Ok(np) => return Ok(np),
             Err(e) => tracing::debug!("Failed to set network profile on daemon: {e}"),
@@ -538,9 +625,13 @@ pub async fn update_network_profile(
 }
 
 #[tauri::command]
-pub async fn clear_network_profile(state: State<'_, DesktopState>, app: String) -> Result<(), String> {
+pub async fn clear_network_profile(
+    state: State<'_, DesktopState>,
+    app: String,
+) -> Result<(), String> {
     // Forward to the daemon
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
         match client.clear_network_profile(&app).await {
             Ok(()) => return Ok(()),
             Err(e) => tracing::debug!("Failed to clear network profile on daemon: {e}"),
@@ -566,10 +657,7 @@ pub async fn start_tunnel(
 }
 
 #[tauri::command]
-pub async fn stop_tunnel(
-    _state: State<'_, DesktopState>,
-    _app: String,
-) -> Result<(), String> {
+pub async fn stop_tunnel(_state: State<'_, DesktopState>, _app: String) -> Result<(), String> {
     Err("Tunnels are not available in this build. This feature will be enabled in a future release.".to_string())
 }
 
@@ -584,12 +672,22 @@ pub async fn get_status(state: State<'_, DesktopState>) -> Result<DaemonStatus, 
     let total_requests = state.store.request_count().unwrap_or(0);
 
     // Also count daemon apps (CLI-registered) that aren't in the local router
-    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await {
-        if let Ok(portzero_core::control::ControlResponse::Apps { apps: daemon_apps }) =
-            client.request(&portzero_core::control::ControlRequest::List).await
+    if let Some(mut client) = portzero_core::control::ControlClient::connect(&state.state_dir).await
+    {
+        if let Ok(portzero_core::control::ControlResponse::Apps { apps: daemon_apps }) = client
+            .request(&portzero_core::control::ControlRequest::List)
+            .await
         {
-            let local_names: Vec<String> = state.router.list().iter().map(|r| r.hostname.clone()).collect();
-            let extra = daemon_apps.iter().filter(|a| !local_names.contains(&a.name)).count();
+            let local_names: Vec<String> = state
+                .router
+                .list()
+                .iter()
+                .map(|r| r.hostname.clone())
+                .collect();
+            let extra = daemon_apps
+                .iter()
+                .filter(|a| !local_names.contains(&a.name))
+                .count();
             total_apps += extra;
         }
     }
@@ -608,7 +706,9 @@ pub async fn get_status(state: State<'_, DesktopState>) -> Result<DaemonStatus, 
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub async fn get_daemon_info(state: State<'_, DesktopState>) -> Result<crate::daemon_bridge::DaemonRunInfo, String> {
+pub async fn get_daemon_info(
+    state: State<'_, DesktopState>,
+) -> Result<crate::daemon_bridge::DaemonRunInfo, String> {
     Ok(crate::daemon_bridge::get_daemon_info(&state.state_dir).await)
 }
 
@@ -685,9 +785,13 @@ pub async fn trust_ca(state: State<'_, DesktopState>) -> Result<TrustResponse, S
             status: "already_trusted".to_string(),
             message: "CA certificate is already trusted.".to_string(),
         }),
-        portzero_core::certs::TrustResult::NeedsSudo => Err("Elevated privileges required. Use the manual command.".to_string()),
+        portzero_core::certs::TrustResult::NeedsSudo => {
+            Err("Elevated privileges required. Use the manual command.".to_string())
+        }
         portzero_core::certs::TrustResult::Failed(msg) => Err(msg),
-        portzero_core::certs::TrustResult::Unsupported => Err("Trust not supported on this platform.".to_string()),
+        portzero_core::certs::TrustResult::Unsupported => {
+            Err("Trust not supported on this platform.".to_string())
+        }
     }
 }
 
@@ -702,9 +806,13 @@ pub async fn untrust_ca(state: State<'_, DesktopState>) -> Result<TrustResponse,
             status: "not_trusted".to_string(),
             message: "CA certificate was not in the trust store.".to_string(),
         }),
-        portzero_core::certs::TrustResult::NeedsSudo => Err("Elevated privileges required. Use the manual command.".to_string()),
+        portzero_core::certs::TrustResult::NeedsSudo => {
+            Err("Elevated privileges required. Use the manual command.".to_string())
+        }
         portzero_core::certs::TrustResult::Failed(msg) => Err(msg),
-        portzero_core::certs::TrustResult::Unsupported => Err("Untrust not supported on this platform.".to_string()),
+        portzero_core::certs::TrustResult::Unsupported => {
+            Err("Untrust not supported on this platform.".to_string())
+        }
     }
 }
 
@@ -773,10 +881,7 @@ pub fn get_cli_status() -> Result<CliStatus, String> {
     use std::process::Command;
 
     // Check if `portzero` is already in PATH
-    let which_output = Command::new("which")
-        .arg("portzero")
-        .output()
-        .ok();
+    let which_output = Command::new("which").arg("portzero").output().ok();
 
     let (installed, current_path) = match which_output {
         Some(output) if output.status.success() => {
@@ -926,7 +1031,9 @@ pub async fn uninstall_cli() -> Result<CliInstallResult, String> {
         });
     }
 
-    let installed_path = String::from_utf8_lossy(&which_output.stdout).trim().to_string();
+    let installed_path = String::from_utf8_lossy(&which_output.stdout)
+        .trim()
+        .to_string();
     let path = std::path::Path::new(&installed_path);
 
     // Try to remove directly
@@ -985,5 +1092,7 @@ pub async fn uninstall_cli() -> Result<CliInstallResult, String> {
 #[tauri::command]
 pub fn open_in_browser(app: tauri::AppHandle, url: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
-    app.opener().open_url(&url, None::<&str>).map_err(|e| e.to_string())
+    app.opener()
+        .open_url(&url, None::<&str>)
+        .map_err(|e| e.to_string())
 }

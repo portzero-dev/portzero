@@ -47,10 +47,7 @@ pub async fn run(
     let (program, args) = if command.len() == 1 {
         #[cfg(unix)]
         {
-            (
-                "sh".to_string(),
-                vec!["-c".to_string(), command[0].clone()],
-            )
+            ("sh".to_string(), vec!["-c".to_string(), command[0].clone()])
         }
         #[cfg(not(unix))]
         {
@@ -81,12 +78,12 @@ pub async fn run(
     }
 
     let mut child = cmd.spawn()?;
-    let pid = child.id().ok_or_else(|| anyhow::anyhow!("child exited immediately"))?;
+    let pid = child
+        .id()
+        .ok_or_else(|| anyhow::anyhow!("child exited immediately"))?;
 
     // Register with the daemon
-    client
-        .register(&name, port, pid, &command, &cwd)
-        .await?;
+    client.register(&name, port, pid, &command, &cwd).await?;
 
     println!();
     println!("  App:   {}", name);

@@ -140,11 +140,8 @@ impl McpServer {
             let request: JsonRpcRequest = match serde_json::from_str(&line) {
                 Ok(req) => req,
                 Err(e) => {
-                    let response = JsonRpcResponse::error(
-                        Value::Null,
-                        -32700,
-                        format!("Parse error: {}", e),
-                    );
+                    let response =
+                        JsonRpcResponse::error(Value::Null, -32700, format!("Parse error: {}", e));
                     let json = serde_json::to_string(&response)?;
                     stdout.write_all(json.as_bytes()).await?;
                     stdout.write_all(b"\n").await?;
@@ -237,11 +234,7 @@ impl McpServer {
         let tool_name = match params.get("name").and_then(|v| v.as_str()) {
             Some(name) => name,
             None => {
-                return JsonRpcResponse::error(
-                    id,
-                    -32602,
-                    "Missing 'name' parameter".to_string(),
-                );
+                return JsonRpcResponse::error(id, -32602, "Missing 'name' parameter".to_string());
             }
         };
 

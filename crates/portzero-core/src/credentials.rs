@@ -122,12 +122,14 @@ pub fn resolve_tunnel_config(
     config_tunnel: Option<&crate::config::TunnelConfig>,
 ) -> ResolvedTunnelConfig {
     // Token
-    let auth_token = std::env::var(ENV_TUNNEL_TOKEN).ok()
+    let auth_token = std::env::var(ENV_TUNNEL_TOKEN)
+        .ok()
         .or_else(|| config_tunnel.and_then(|c| c.token.clone()))
         .or_else(|| get_auth_token(state_dir));
 
     // Relay
-    let relay = std::env::var(ENV_TUNNEL_RELAY).ok()
+    let relay = std::env::var(ENV_TUNNEL_RELAY)
+        .ok()
         .or_else(|| config_tunnel.and_then(|c| c.relay.clone()))
         .unwrap_or_else(|| DEFAULT_RELAY.to_string());
 
@@ -268,10 +270,7 @@ impl LocalUpApi {
     }
 
     /// List existing auth tokens.
-    pub async fn list_auth_tokens(
-        &self,
-        session_token: &str,
-    ) -> Result<Vec<AuthTokenListItem>> {
+    pub async fn list_auth_tokens(&self, session_token: &str) -> Result<Vec<AuthTokenListItem>> {
         let url = format!("{}/api/auth-tokens", self.base_url);
         let response = self.get_json(&url, Some(session_token)).await?;
         Ok(response)
@@ -462,7 +461,12 @@ fn decode_chunked(input: &str) -> Result<String> {
 
         let size_str = remaining[..line_end].trim();
         if size_str.is_empty() {
-            remaining = &remaining[line_end + if remaining[line_end..].starts_with("\r\n") { 2 } else { 1 }..];
+            remaining = &remaining[line_end
+                + if remaining[line_end..].starts_with("\r\n") {
+                    2
+                } else {
+                    1
+                }..];
             continue;
         }
 
@@ -471,7 +475,12 @@ fn decode_chunked(input: &str) -> Result<String> {
             break;
         }
 
-        let data_start = line_end + if remaining[line_end..].starts_with("\r\n") { 2 } else { 1 };
+        let data_start = line_end
+            + if remaining[line_end..].starts_with("\r\n") {
+                2
+            } else {
+                1
+            };
         let data_end = (data_start + chunk_size).min(remaining.len());
         result.push_str(&remaining[data_start..data_end]);
 

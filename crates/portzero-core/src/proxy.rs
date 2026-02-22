@@ -143,7 +143,10 @@ impl ProxyHttp for PortZeroProxy {
         // Use the subdomain as a temporary request ID for the mock hit event;
         // it'll be replaced by the real recording ID if we record.
         let request_id = uuid::Uuid::new_v4().to_string();
-        if let Some(mock_resp) = self.mock_engine.match_request(subdomain, &method, &path, &request_id) {
+        if let Some(mock_resp) =
+            self.mock_engine
+                .match_request(subdomain, &method, &path, &request_id)
+        {
             tracing::info!(
                 app = %subdomain,
                 method = %method,
@@ -154,7 +157,10 @@ impl ProxyHttp for PortZeroProxy {
 
             // Build the full URL for recording
             let full_url = {
-                let pq = session.req_header().uri.path_and_query()
+                let pq = session
+                    .req_header()
+                    .uri
+                    .path_and_query()
                     .map(|pq| pq.as_str())
                     .unwrap_or(&path);
                 format!("http://{}{}", host, pq)
@@ -162,7 +168,9 @@ impl ProxyHttp for PortZeroProxy {
             let query = session.req_header().uri.query().unwrap_or("").to_string();
 
             // Start a recording session so the mocked request appears in traffic
-            let mut recording = self.recorder.start_recording(subdomain, &method, &full_url, &path);
+            let mut recording = self
+                .recorder
+                .start_recording(subdomain, &method, &full_url, &path);
             recording.set_query_string(query);
 
             // Capture request headers
@@ -187,14 +195,17 @@ impl ProxyHttp for PortZeroProxy {
             // We consume mock_resp fields to satisfy Pingora's 'static requirement
             // on header names/values.
             let body_len = mock_resp.body.len();
-            let mut resp = ResponseHeader::build(mock_resp.status_code, Some(mock_resp.headers.len()))?;
+            let mut resp =
+                ResponseHeader::build(mock_resp.status_code, Some(mock_resp.headers.len()))?;
             for (k, v) in mock_resp.headers {
                 let _ = resp.insert_header(k, &v);
             }
             let _ = resp.insert_header("content-length", &body_len.to_string());
 
             session.write_response_header(Box::new(resp), false).await?;
-            session.write_response_body(Some(Bytes::from(mock_resp.body)), true).await?;
+            session
+                .write_response_body(Some(Bytes::from(mock_resp.body)), true)
+                .await?;
 
             return Ok(true); // Response already sent
         }
@@ -247,18 +258,16 @@ impl ProxyHttp for PortZeroProxy {
         // Capture request metadata for recording
         let method = session.req_header().method.as_str().to_string();
         let path = session.req_header().uri.path().to_string();
-        let query = session
-            .req_header()
-            .uri
-            .query()
-            .unwrap_or("")
-            .to_string();
+        let query = session.req_header().uri.query().unwrap_or("").to_string();
 
         // Build the full URL including the host so replays can target the right address.
         // HTTP/1.1 requests typically have a relative URI (just the path), so we
         // reconstruct the full URL from the Host header.
         let full_url = {
-            let path_and_query = session.req_header().uri.path_and_query()
+            let path_and_query = session
+                .req_header()
+                .uri
+                .path_and_query()
                 .map(|pq| pq.as_str())
                 .unwrap_or(&path);
             format!("http://{}{}", host, path_and_query)
@@ -269,9 +278,9 @@ impl ProxyHttp for PortZeroProxy {
         ctx.path = path.clone();
 
         // Start a recording session
-        let mut recording =
-            self.recorder
-                .start_recording(&ctx.app_name, &method, &full_url, &path);
+        let mut recording = self
+            .recorder
+            .start_recording(&ctx.app_name, &method, &full_url, &path);
         recording.set_query_string(query);
 
         // Capture request headers
@@ -400,9 +409,9 @@ impl ProxyHttp for PortZeroProxy {
         // Return a delay proportional to the chunk size to simulate limited bandwidth.
         // Pingora will wait this duration before sending the next chunk.
         if let Some(data) = body {
-            if let Some(delay) = self
-                .network_sim
-                .throttle_delay(&ctx.app_name, &ctx.path, data.len())
+            if let Some(delay) =
+                self.network_sim
+                    .throttle_delay(&ctx.app_name, &ctx.path, data.len())
             {
                 tracing::debug!(
                     app = %ctx.app_name,
@@ -420,12 +429,7 @@ impl ProxyHttp for PortZeroProxy {
 
     /// Final logging: persist the captured request/response to SQLite and
     /// broadcast a completion event via WebSocket.
-    async fn logging(
-        &self,
-        _session: &mut Session,
-        _error: Option<&Error>,
-        ctx: &mut Self::CTX,
-    ) {
+    async fn logging(&self, _session: &mut Session, _error: Option<&Error>, ctx: &mut Self::CTX) {
         if let Some(recording) = ctx.recording.take() {
             recording.complete_sync();
         }
@@ -441,15 +445,9 @@ mod tests {
     fn test_subdomain_routing_logic() {
         // Verify extract_subdomain works as expected for proxy routing
         assert_eq!(extract_subdomain("my-app.localhost:1337"), "my-app");
-        assert_eq!(
-            extract_subdomain("api.my-app.localhost:1337"),
-            "api.my-app"
-        );
+        assert_eq!(extract_subdomain("api.my-app.localhost:1337"), "api.my-app");
         assert_eq!(extract_subdomain("localhost:1337"), "");
-        assert_eq!(
-            extract_subdomain("_portzero.localhost:1337"),
-            "_portzero"
-        );
+        assert_eq!(extract_subdomain("_portzero.localhost:1337"), "_portzero");
     }
 
     #[test]

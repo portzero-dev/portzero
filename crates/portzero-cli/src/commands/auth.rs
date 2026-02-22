@@ -4,9 +4,7 @@
 //! Credentials are stored in `~/.portzero/credentials.json`.
 
 use anyhow::Result;
-use portzero_core::credentials::{
-    self, Credentials, LocalUpApi, DEFAULT_RELAY_API,
-};
+use portzero_core::credentials::{self, Credentials, LocalUpApi, DEFAULT_RELAY_API};
 use std::io::{self, Write};
 use std::path::Path;
 
@@ -109,12 +107,7 @@ pub async fn login(state_dir: &Path, relay_api: Option<&str>) -> Result<()> {
 }
 
 /// Register a new account.
-async fn register(
-    state_dir: &Path,
-    email: &str,
-    password: &str,
-    api_url: &str,
-) -> Result<()> {
+async fn register(state_dir: &Path, email: &str, password: &str, api_url: &str) -> Result<()> {
     print!("Full name (optional): ");
     io::stdout().flush()?;
     let mut name = String::new();
@@ -157,9 +150,7 @@ async fn register(
 async fn get_or_create_auth_token(api: &LocalUpApi, session_token: &str) -> Result<String> {
     // First try listing existing tokens — if there's a "portzero" one, we can't
     // retrieve the JWT value (it's only shown on creation). So just create a new one.
-    let token_info = api
-        .create_auth_token(session_token, "portzero-cli")
-        .await?;
+    let token_info = api.create_auth_token(session_token, "portzero-cli").await?;
 
     Ok(token_info.token)
 }

@@ -113,11 +113,10 @@ impl TunnelBackend for LocalUpBackend {
         subdomain: Option<&str>,
         relay: &str,
     ) -> Result<TunnelConnection, TunnelError> {
-        use localup_client::{
-            TunnelClient, TunnelConfig as LuTunnelConfig,
-            ProtocolConfig as LuProtocolConfig,
-        };
         use localup_client::ExitNodeConfig as LuExitNodeConfig;
+        use localup_client::{
+            ProtocolConfig as LuProtocolConfig, TunnelClient, TunnelConfig as LuTunnelConfig,
+        };
 
         // Build the localup tunnel config
         let config = LuTunnelConfig::builder()
@@ -133,24 +132,19 @@ impl TunnelBackend for LocalUpBackend {
             .map_err(|e| TunnelError::ConnectionFailed(format!("Config error: {}", e)))?;
 
         // Connect to the relay
-        let client = TunnelClient::connect(config)
-            .await
-            .map_err(|e| {
-                let msg = format!("{}", e);
-                if msg.contains("Authentication") || msg.contains("auth") {
-                    TunnelError::ConnectionFailed(
-                        "Authentication failed. Run `portzero login` to refresh your credentials."
-                            .to_string(),
-                    )
-                } else {
-                    TunnelError::ConnectionFailed(msg)
-                }
-            })?;
+        let client = TunnelClient::connect(config).await.map_err(|e| {
+            let msg = format!("{}", e);
+            if msg.contains("Authentication") || msg.contains("auth") {
+                TunnelError::ConnectionFailed(
+                    "Authentication failed. Run `portzero login` to refresh your credentials."
+                        .to_string(),
+                )
+            } else {
+                TunnelError::ConnectionFailed(msg)
+            }
+        })?;
 
-        let public_url = client
-            .public_url()
-            .unwrap_or("unknown")
-            .to_string();
+        let public_url = client.public_url().unwrap_or("unknown").to_string();
 
         tracing::info!(
             public_url = %public_url,
@@ -265,11 +259,7 @@ impl TunnelManager {
             None => {
                 tracing::debug!("No tunnel auth token found. Tunnels disabled.");
                 tracing::debug!("To enable: `portzero login`, set PORTZERO_TUNNEL_TOKEN, or add [tunnel] token in portzero.toml");
-                Self::new(
-                    Arc::new(StubTunnelBackend),
-                    config.relay.clone(),
-                    ws_hub,
-                )
+                Self::new(Arc::new(StubTunnelBackend), config.relay.clone(), ws_hub)
             }
         }
     }
@@ -425,10 +415,7 @@ mod tests {
             .share("my-app", 4001, Some("custom-name"), None)
             .await
             .unwrap();
-        assert_eq!(
-            info.public_url,
-            "https://custom-name.relay.example.com"
-        );
+        assert_eq!(info.public_url, "https://custom-name.relay.example.com");
     }
 
     #[tokio::test]
@@ -440,10 +427,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(info.relay, "my-relay.example.com");
-        assert_eq!(
-            info.public_url,
-            "https://my-app.my-relay.example.com"
-        );
+        assert_eq!(info.public_url, "https://my-app.my-relay.example.com");
     }
 
     #[tokio::test]

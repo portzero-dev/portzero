@@ -84,13 +84,11 @@ pub fn run() {
     // from new instances to the existing one.
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(
-            |_app, argv, _cwd| {
-                tracing::info!(
-                    "New app instance opened with args: {argv:?} — deep link event already triggered"
-                );
-            },
-        ));
+        builder = builder.plugin(tauri_plugin_single_instance::init(|_app, argv, _cwd| {
+            tracing::info!(
+                "New app instance opened with args: {argv:?} — deep link event already triggered"
+            );
+        }));
     }
 
     builder = builder
@@ -112,10 +110,9 @@ pub fn run() {
                 tracing::warn!("Failed to generate TLS certificates: {e}");
             }
 
-            let desktop_state = tauri::async_runtime::handle().block_on(async {
-                DesktopState::new(&state_dir)
-            })
-            .expect("Failed to initialize PortZero state");
+            let desktop_state = tauri::async_runtime::handle()
+                .block_on(async { DesktopState::new(&state_dir) })
+                .expect("Failed to initialize PortZero state");
 
             // Start the local WsHub → Tauri IPC bridge (for locally-managed apps)
             start_event_bridge(app.handle().clone(), &desktop_state.ws_hub);
@@ -145,8 +142,7 @@ pub fn run() {
                 // Forward deep link events to the frontend
                 let handle = app.handle().clone();
                 app.deep_link().on_open_url(move |event| {
-                    let urls: Vec<String> =
-                        event.urls().iter().map(|u| u.to_string()).collect();
+                    let urls: Vec<String> = event.urls().iter().map(|u| u.to_string()).collect();
                     tracing::info!("Deep link received: {:?}", urls);
                     let _ = handle.emit("deep-link", &urls);
                 });
@@ -205,4 +201,3 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error running PortZero dashboard");
 }
-

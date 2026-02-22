@@ -49,7 +49,10 @@ pub async fn up(state_dir: &Path) -> Result<()> {
     // Ensure daemon is running
     let mut client = crate::commands::run::ensure_daemon_public(state_dir).await?;
 
-    println!("Starting {} app(s) from portzero.toml...", config.apps.len());
+    println!(
+        "Starting {} app(s) from portzero.toml...",
+        config.apps.len()
+    );
     println!();
 
     let proxy_port = config.proxy.port;
