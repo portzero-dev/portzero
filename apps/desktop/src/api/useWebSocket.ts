@@ -1,19 +1,15 @@
 import { useEffect, useCallback, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { listen } from "@tauri-apps/api/event";
+import { isTauri, wsUrl } from "../lib/env";
 import type { WsEvent } from "../lib/types";
 
 type WsEventHandler = (event: WsEvent) => void;
 
 /**
- * Subscribe to real-time events from the Tauri backend.
+ * Subscribe to real-time events.
  *
- * The Rust backend forwards events as Tauri `"ws-event"` events from two sources:
- * 1. The local WsHub (for apps managed by the desktop app)
- * 2. The daemon's event stream via control socket subscription (for CLI-managed apps)
- *
- * The listener is set up once and stays stable — the `onEvent` callback is
- * stored in a ref so it can change without re-subscribing.
+ * - **Tauri mode**: listens to `"ws-event"` Tauri events forwarded by the Rust backend.
+ * - **Web mode**: connects to the daemon's WebSocket endpoint at `/api/ws`.
  */
 export function usePortZeroWebSocket(onEvent?: WsEventHandler) {
   const queryClient = useQueryClient();
@@ -68,28 +64,102 @@ export function usePortZeroWebSocket(onEvent?: WsEventHandler) {
     [queryClient],
   );
 
+  // Tauri mode: listen to Tauri events
   useEffect(() => {
+    if (!isTauri()) return;
+
     setConnected(true);
 
-    const unlistenWs = listen<WsEvent>("ws-event", (tauriEvent) => {
-      const event = tauriEvent.payload;
-      invalidateQueries(event);
-      onEventRef.current?.(event);
+    let cancelled = false;
+
+    // Dynamic import to avoid bundling Tauri APIs in web builds
+    import("@tauri-apps/api/event").then(({ listen }) => {
+      if (cancelled) return;
+
+      const unlistenWs = listen<WsEvent>("ws-event", (tauriEvent) => {
+        const event = tauriEvent.payload;
+        invalidateQueries(event);
+        onEventRef.current?.(event);
+      });
+
+      const unlistenDaemon = listen("daemon-state-changed", () => {
+        queryClient.invalidateQueries({ queryKey: ["daemon-info"] });
+        queryClient.invalidateQueries({ queryKey: ["status"] });
+        queryClient.invalidateQueries({ queryKey: ["apps"] });
+      });
+
+      // Store unlisten fns for cleanup
+      Promise.all([unlistenWs, unlistenDaemon]).then(([unwsF, undF]) => {
+        if (cancelled) {
+          unwsF();
+          undF();
+        } else {
+          cleanupRef.current = () => {
+            unwsF();
+            undF();
+          };
+        }
+      });
     });
 
-    // Listen for daemon state changes triggered by tray menu actions
-    const unlistenDaemon = listen("daemon-state-changed", () => {
-      queryClient.invalidateQueries({ queryKey: ["daemon-info"] });
-      queryClient.invalidateQueries({ queryKey: ["status"] });
-      queryClient.invalidateQueries({ queryKey: ["apps"] });
-    });
+    const cleanupRef = { current: () => {} };
 
     return () => {
-      unlistenWs.then((fn) => fn());
-      unlistenDaemon.then((fn) => fn());
+      cancelled = true;
+      cleanupRef.current();
       setConnected(false);
     };
   }, [invalidateQueries, queryClient]);
+
+  // Web mode: native WebSocket
+  useEffect(() => {
+    if (isTauri()) return;
+
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+
+    function connect() {
+      if (cancelled) return;
+
+      ws = new WebSocket(wsUrl());
+
+      ws.onopen = () => {
+        setConnected(true);
+      };
+
+      ws.onmessage = (msg) => {
+        try {
+          const event: WsEvent = JSON.parse(msg.data);
+          invalidateQueries(event);
+          onEventRef.current?.(event);
+        } catch {
+          // Ignore malformed messages
+        }
+      };
+
+      ws.onclose = () => {
+        setConnected(false);
+        if (!cancelled) {
+          // Reconnect after a short delay
+          reconnectTimer = setTimeout(connect, 2000);
+        }
+      };
+
+      ws.onerror = () => {
+        ws?.close();
+      };
+    }
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      ws?.close();
+      setConnected(false);
+    };
+  }, [invalidateQueries]);
 
   return { connected };
 }

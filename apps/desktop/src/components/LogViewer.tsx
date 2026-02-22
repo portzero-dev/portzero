@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { listenWsEvent } from "../api/listenWsEvent";
 import { getAppLogs } from "../api/client";
 import type { LogLine, WsEvent } from "../lib/types";
 import { formatTime } from "../lib/formatters";
@@ -44,18 +44,15 @@ export function LogViewer({ appName }: LogViewerProps) {
     return () => clearInterval(interval);
   }, [fetchLogs]);
 
-  // Also listen for Tauri ws-events to trigger immediate re-fetch
+  // Listen for ws-events to trigger immediate re-fetch
   useEffect(() => {
-    const unlisten = listen<WsEvent>("ws-event", (tauriEvent) => {
-      const event = tauriEvent.payload;
+    const unlisten = listenWsEvent((event: WsEvent) => {
       if (event.type === "log:line" && event.app === appName) {
         fetchLogs();
       }
     });
 
-    return () => {
-      unlisten.then((fn) => fn());
-    };
+    return unlisten;
   }, [appName, fetchLogs]);
 
   // Auto-scroll to bottom when new logs arrive

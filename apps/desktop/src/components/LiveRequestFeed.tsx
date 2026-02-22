@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { listenWsEvent } from "../api/listenWsEvent";
 import type { WsEvent, RequestSummary } from "../lib/types";
 import type { Route } from "../App";
 import { listRequests } from "../api/client";
@@ -52,9 +52,7 @@ export function LiveRequestFeed({ navigate }: LiveRequestFeedProps) {
   useEffect(() => {
     if (!isLive) return;
 
-    const unlisten = listen<WsEvent>("ws-event", (tauriEvent) => {
-      const event = tauriEvent.payload;
-
+    const unlisten = listenWsEvent((event: WsEvent) => {
       if (event.type === "request:start") {
         // Extract path from the URL
         let path = event.url;
@@ -104,9 +102,7 @@ export function LiveRequestFeed({ navigate }: LiveRequestFeedProps) {
       }
     });
 
-    return () => {
-      unlisten.then((fn) => fn());
-    };
+    return unlisten;
   }, [isLive]);
 
   return (

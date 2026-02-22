@@ -128,7 +128,7 @@ impl ProxyHttp for PortZeroProxy {
 
         let subdomain = router::extract_subdomain(host);
         if subdomain.is_empty() || subdomain == RESERVED_SUBDOMAIN {
-            return Ok(false); // Let upstream_peer handle the error
+            return Ok(false); // Dashboard: pass through. Empty: let upstream_peer handle the error.
         }
 
         // Resolve route to confirm the app exists (no point mocking for unknown apps)
@@ -228,15 +228,6 @@ impl ProxyHttp for PortZeroProxy {
 
         let subdomain = router::extract_subdomain(host);
 
-        // Reserved subdomain for the dashboard/API — return 404 here;
-        // the API server handles it on a separate listener.
-        if subdomain == RESERVED_SUBDOMAIN {
-            return Err(Error::explain(
-                ErrorType::HTTPStatus(404),
-                "reserved subdomain — use the API server",
-            ));
-        }
-
         if subdomain.is_empty() {
             return Err(Error::explain(
                 ErrorType::HTTPStatus(404),
@@ -255,7 +246,11 @@ impl ProxyHttp for PortZeroProxy {
         ctx.target_port = route.port;
         ctx.request_start = Instant::now();
 
-        // Capture request metadata for recording
+        // Capture request metadata for recording.
+        // Skip recording for the reserved dashboard subdomain — we don't want
+        // the dashboard's own API calls cluttering the traffic inspector.
+        let is_dashboard = subdomain == RESERVED_SUBDOMAIN;
+
         let method = session.req_header().method.as_str().to_string();
         let path = session.req_header().uri.path().to_string();
         let query = session.req_header().uri.query().unwrap_or("").to_string();
@@ -277,22 +272,24 @@ impl ProxyHttp for PortZeroProxy {
         ctx.url = full_url.clone();
         ctx.path = path.clone();
 
-        // Start a recording session
-        let mut recording = self
-            .recorder
-            .start_recording(&ctx.app_name, &method, &full_url, &path);
-        recording.set_query_string(query);
+        if !is_dashboard {
+            // Start a recording session
+            let mut recording =
+                self.recorder
+                    .start_recording(&ctx.app_name, &method, &full_url, &path);
+            recording.set_query_string(query);
 
-        // Capture request headers
-        let req_headers: HashMap<String, String> = session
-            .req_header()
-            .headers
-            .iter()
-            .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
-            .collect();
-        recording.set_request_headers(req_headers);
+            // Capture request headers
+            let req_headers: HashMap<String, String> = session
+                .req_header()
+                .headers
+                .iter()
+                .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
+                .collect();
+            recording.set_request_headers(req_headers);
 
-        ctx.recording = Some(recording);
+            ctx.recording = Some(recording);
+        }
 
         // Build the upstream peer (plain HTTP to local process)
         let peer = HttpPeer::new(

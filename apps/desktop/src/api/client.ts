@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { isTauri, apiBaseUrl } from "../lib/env";
 import type {
   AppInfo,
   LogLine,
@@ -18,157 +18,251 @@ import type {
   DaemonRunInfo,
 } from "../lib/types";
 
-// Error wrapper to keep the same interface for callers
+// ---------------------------------------------------------------------------
+// Error wrapper
+// ---------------------------------------------------------------------------
+
 export class ApiError extends Error {
   constructor(
     public status: number,
     public body: string,
     public path: string,
   ) {
-    super(`IPC error on ${path}: ${body}`);
+    super(`API error on ${path}: ${body}`);
     this.name = "ApiError";
   }
 }
 
-// ── Apps ────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Transport helpers
+// ---------------------------------------------------------------------------
+
+/** Lazy-load Tauri invoke only when running inside Tauri. */
+async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke(cmd, args);
+}
+
+/** HTTP fetch helper for the daemon's REST API. */
+async function httpFetch<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const url = `${apiBaseUrl()}${path}`;
+  const resp = await fetch(url, {
+    headers: { "Content-Type": "application/json", ...options.headers as Record<string, string> },
+    ...options,
+  });
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new ApiError(resp.status, body, path);
+  }
+  // 204 No Content
+  if (resp.status === 204) return undefined as T;
+  return resp.json();
+}
+
+// ---------------------------------------------------------------------------
+// Apps
+// ---------------------------------------------------------------------------
 
 export async function listApps(): Promise<AppInfo[]> {
-  return invoke("list_apps");
+  if (isTauri()) return tauriInvoke("list_apps");
+  return httpFetch("/apps");
 }
 
 export async function getApp(name: string): Promise<AppInfo> {
-  return invoke("get_app", { name });
+  if (isTauri()) return tauriInvoke("get_app", { name });
+  return httpFetch(`/apps/${encodeURIComponent(name)}`);
 }
 
 export async function restartApp(name: string): Promise<void> {
-  return invoke("restart_app", { name });
+  if (isTauri()) return tauriInvoke("restart_app", { name });
+  return httpFetch(`/apps/${encodeURIComponent(name)}/restart`, { method: "POST" });
 }
 
 export async function stopApp(name: string): Promise<void> {
-  return invoke("stop_app", { name });
+  if (isTauri()) return tauriInvoke("stop_app", { name });
+  return httpFetch(`/apps/${encodeURIComponent(name)}/stop`, { method: "POST" });
 }
 
 export async function getAppLogs(
   name: string,
   lines = 100,
 ): Promise<LogLine[]> {
-  return invoke("get_app_logs", { name, lines });
+  if (isTauri()) return tauriInvoke("get_app_logs", { name, lines });
+  return httpFetch(`/apps/${encodeURIComponent(name)}/logs?lines=${lines}`);
 }
 
 export async function getAppSchema(name: string): Promise<InferredSchema> {
-  return invoke("get_app_schema", { name });
+  if (isTauri()) return tauriInvoke("get_app_schema", { name });
+  return httpFetch(`/apps/${encodeURIComponent(name)}/schema`);
 }
 
-// ── Traffic / Requests ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Traffic / Requests
+// ---------------------------------------------------------------------------
 
 export async function listRequests(
   filters?: RequestFilters,
 ): Promise<RequestSummary[]> {
-  return invoke("list_requests", { filters: filters ?? null });
+  if (isTauri()) return tauriInvoke("list_requests", { filters: filters ?? null });
+  const params = new URLSearchParams();
+  if (filters) {
+    for (const [k, v] of Object.entries(filters)) {
+      if (v != null) params.set(k, String(v));
+    }
+  }
+  const qs = params.toString();
+  return httpFetch(`/requests${qs ? `?${qs}` : ""}`);
 }
 
 export async function getRequest(id: string): Promise<RequestDetail> {
-  return invoke("get_request", { id });
+  if (isTauri()) return tauriInvoke("get_request", { id });
+  return httpFetch(`/requests/${encodeURIComponent(id)}`);
 }
 
 export async function replayRequest(
   id: string,
   options?: ReplayOptions,
 ): Promise<RequestDetail> {
-  return invoke("replay_request", { id, options: options ?? null });
+  if (isTauri()) return tauriInvoke("replay_request", { id, options: options ?? null });
+  return httpFetch(`/requests/${encodeURIComponent(id)}/replay`, {
+    method: "POST",
+    body: options ? JSON.stringify(options) : undefined,
+  });
 }
 
 export async function clearRequests(app?: string): Promise<void> {
-  return invoke("clear_requests", { app: app ?? null });
+  if (isTauri()) return tauriInvoke("clear_requests", { app: app ?? null });
+  const qs = app ? `?app=${encodeURIComponent(app)}` : "";
+  return httpFetch(`/requests${qs}`, { method: "DELETE" });
 }
 
 export async function diffRequests(
   id1: string,
   id2: string,
 ): Promise<RequestDiff> {
-  return invoke("diff_requests", { id1, id2 });
+  if (isTauri()) return tauriInvoke("diff_requests", { id1, id2 });
+  return httpFetch(`/requests/${encodeURIComponent(id1)}/diff/${encodeURIComponent(id2)}`);
 }
 
-// ── Mocks ──────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Mocks
+// ---------------------------------------------------------------------------
 
 export async function listMocks(): Promise<MockRule[]> {
-  return invoke("list_mocks");
+  if (isTauri()) return tauriInvoke("list_mocks");
+  return httpFetch("/mocks");
 }
 
 export async function createMock(rule: CreateMockRule): Promise<MockRule> {
-  return invoke("create_mock", { rule });
+  if (isTauri()) return tauriInvoke("create_mock", { rule });
+  return httpFetch("/mocks", { method: "POST", body: JSON.stringify(rule) });
 }
 
 export async function updateMock(
   id: string,
   updates: UpdateMockRule,
 ): Promise<MockRule> {
-  return invoke("update_mock", { id, updates });
+  if (isTauri()) return tauriInvoke("update_mock", { id, updates });
+  return httpFetch(`/mocks/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  });
 }
 
 export async function deleteMock(id: string): Promise<void> {
-  return invoke("delete_mock", { id });
+  if (isTauri()) return tauriInvoke("delete_mock", { id });
+  return httpFetch(`/mocks/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 export async function toggleMock(id: string): Promise<MockRule> {
-  return invoke("toggle_mock", { id });
+  if (isTauri()) return tauriInvoke("toggle_mock", { id });
+  return httpFetch(`/mocks/${encodeURIComponent(id)}/toggle`, { method: "PATCH" });
 }
 
-// ── Network Simulation ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Network Simulation
+// ---------------------------------------------------------------------------
 
 export async function getNetworkProfile(
   app: string,
 ): Promise<NetworkProfile> {
-  return invoke("get_network_profile", { app });
+  if (isTauri()) return tauriInvoke("get_network_profile", { app });
+  return httpFetch(`/network/${encodeURIComponent(app)}`);
 }
 
 export async function updateNetworkProfile(
   app: string,
   profile: UpdateNetworkProfile,
 ): Promise<NetworkProfile> {
-  return invoke("update_network_profile", { app, profile });
+  if (isTauri()) return tauriInvoke("update_network_profile", { app, profile });
+  return httpFetch(`/network/${encodeURIComponent(app)}`, {
+    method: "PUT",
+    body: JSON.stringify(profile),
+  });
 }
 
 export async function clearNetworkProfile(app: string): Promise<void> {
-  return invoke("clear_network_profile", { app });
+  if (isTauri()) return tauriInvoke("clear_network_profile", { app });
+  return httpFetch(`/network/${encodeURIComponent(app)}`, { method: "DELETE" });
 }
 
-// ── Tunnel ──────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Tunnel
+// ---------------------------------------------------------------------------
 
 export async function startTunnel(
   app: string,
   subdomain?: string,
 ): Promise<TunnelInfo> {
-  return invoke("start_tunnel", { app, subdomain: subdomain ?? null });
+  if (isTauri()) return tauriInvoke("start_tunnel", { app, subdomain: subdomain ?? null });
+  return httpFetch(`/apps/${encodeURIComponent(app)}/share`, {
+    method: "POST",
+    body: subdomain ? JSON.stringify({ subdomain }) : undefined,
+  });
 }
 
 export async function stopTunnel(app: string): Promise<void> {
-  return invoke("stop_tunnel", { app });
+  if (isTauri()) return tauriInvoke("stop_tunnel", { app });
+  return httpFetch(`/apps/${encodeURIComponent(app)}/share`, { method: "DELETE" });
 }
 
-// ── System ──────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// System
+// ---------------------------------------------------------------------------
 
 export async function getDaemonStatus(): Promise<DaemonStatus> {
-  return invoke("get_status");
+  if (isTauri()) return tauriInvoke("get_status");
+  return httpFetch("/status");
 }
 
 export async function getDaemonInfo(): Promise<DaemonRunInfo> {
-  return invoke("get_daemon_info");
+  if (isTauri()) return tauriInvoke("get_daemon_info");
+  // In web mode, if we can reach the API, the daemon is running and responsive.
+  return { running: true, pid: null, responsive: true };
 }
 
 export async function startDaemon(): Promise<void> {
-  return invoke("start_daemon");
+  if (isTauri()) return tauriInvoke("start_daemon");
+  // Not available in web mode — daemon is already running (we're served by it)
+  throw new Error("Cannot start daemon from the web dashboard — it's already running.");
 }
 
 export async function stopDaemon(): Promise<void> {
-  return invoke("stop_daemon");
+  if (isTauri()) return tauriInvoke("stop_daemon");
+  throw new Error("Cannot stop daemon from the web dashboard — you would lose access to this page.");
 }
 
 export async function restartDaemon(): Promise<void> {
-  return invoke("restart_daemon");
+  if (isTauri()) return tauriInvoke("restart_daemon");
+  throw new Error("Cannot restart daemon from the web dashboard.");
 }
 
-// ── Certificates ───────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Certificates
+// ---------------------------------------------------------------------------
 
 export interface CertStatus {
   certs_exist: boolean;
@@ -183,18 +277,23 @@ export interface TrustResponse {
 }
 
 export async function getCertStatus(): Promise<CertStatus> {
-  return invoke("get_cert_status");
+  if (isTauri()) return tauriInvoke("get_cert_status");
+  return httpFetch("/certs/status");
 }
 
 export async function trustCA(): Promise<TrustResponse> {
-  return invoke("trust_ca");
+  if (isTauri()) return tauriInvoke("trust_ca");
+  return httpFetch("/certs/trust", { method: "POST" });
 }
 
 export async function untrustCA(): Promise<TrustResponse> {
-  return invoke("untrust_ca");
+  if (isTauri()) return tauriInvoke("untrust_ca");
+  return httpFetch("/certs/untrust", { method: "POST" });
 }
 
-// ── CLI Installation ───────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// CLI Installation (Tauri-only — no-op stubs in web mode)
+// ---------------------------------------------------------------------------
 
 export interface CliStatus {
   installed: boolean;
@@ -211,15 +310,25 @@ export interface CliInstallResult {
 }
 
 export async function getCliStatus(): Promise<CliStatus> {
-  return invoke("get_cli_status");
+  if (isTauri()) return tauriInvoke("get_cli_status");
+  // In web mode, CLI management isn't available — return a sensible default
+  return {
+    installed: true,
+    current_path: null,
+    binary_path: null,
+    binary_exists: true,
+    install_dir: "",
+  };
 }
 
 export async function installCli(
   installDir?: string,
 ): Promise<CliInstallResult> {
-  return invoke("install_cli", { installDir: installDir ?? null });
+  if (isTauri()) return tauriInvoke("install_cli", { installDir: installDir ?? null });
+  throw new Error("CLI installation is only available from the desktop app.");
 }
 
 export async function uninstallCli(): Promise<CliInstallResult> {
-  return invoke("uninstall_cli");
+  if (isTauri()) return tauriInvoke("uninstall_cli");
+  throw new Error("CLI uninstallation is only available from the desktop app.");
 }

@@ -12,6 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 portzero-core = { workspace = true }
+portzero-api = { workspace = true }
 tokio = { workspace = true }
 clap = { workspace = true }
 anyhow = { workspace = true }
@@ -25,13 +26,14 @@ which = "7"
 dirs-next = "2"
 ctrlc = "3"
 rpassword = "7"
+axum = { workspace = true }
 pingora = { workspace = true }
 pingora-core = { workspace = true }
 pingora-proxy = { workspace = true }
 
 [features]
 default = []
-tunnel = ["portzero-core/tunnel"]
+tunnel = ["portzero-core/tunnel", "portzero-api/tunnel"]
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }

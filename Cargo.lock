@@ -4468,6 +4468,7 @@ name = "portzero-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "axum",
  "chrono",
  "clap",
  "ctrlc",
@@ -4476,6 +4477,7 @@ dependencies = [
  "pingora",
  "pingora-core",
  "pingora-proxy",
+ "portzero-api",
  "portzero-core",
  "rpassword",
  "serde",

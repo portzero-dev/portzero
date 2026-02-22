@@ -2,7 +2,7 @@
  * Deep link handler for the `portzero://` URL scheme.
  *
  * Listens for deep link events from the Tauri backend and translates
- * them into in-app navigation.
+ * them into in-app navigation. No-op when running in web mode.
  *
  * Supported URLs:
  *   portzero://                      → overview
@@ -14,8 +14,7 @@
  */
 
 import { useEffect } from "react";
-import { listen } from "@tauri-apps/api/event";
-import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
+import { isTauri } from "../lib/env";
 import type { Route } from "../App";
 
 /**
@@ -64,41 +63,62 @@ function parseDeepLinkUrl(url: string): Route | null {
  * React hook that handles `portzero://` deep link navigation.
  *
  * Call this in your root App component, passing the navigate function.
+ * In web mode this is a no-op — deep links are a desktop-only feature.
  */
 export function useDeepLink(navigate: (route: Route) => void) {
   useEffect(() => {
-    // Check if the app was opened via a deep link at startup
-    getCurrent()
-      .then((urls) => {
+    if (!isTauri()) return;
+
+    let cancelled = false;
+
+    // Dynamic imports so Tauri APIs aren't bundled in web builds
+    Promise.all([
+      import("@tauri-apps/api/event"),
+      import("@tauri-apps/plugin-deep-link"),
+    ]).then(([{ listen }, { getCurrent, onOpenUrl }]) => {
+      if (cancelled) return;
+
+      // Check if the app was opened via a deep link at startup
+      getCurrent()
+        .then((urls) => {
+          if (urls && urls.length > 0) {
+            const route = parseDeepLinkUrl(urls[0]);
+            if (route) navigate(route);
+          }
+        })
+        .catch(() => {
+          // Ignore — deep-link plugin may not be available in dev
+        });
+
+      // Listen for deep links while the app is running (from Rust on_open_url)
+      const unlistenTauri = listen<string[]>("deep-link", (event) => {
+        const urls = event.payload;
         if (urls && urls.length > 0) {
           const route = parseDeepLinkUrl(urls[0]);
           if (route) navigate(route);
         }
-      })
-      .catch(() => {
-        // Ignore — deep-link plugin may not be available in dev
       });
 
-    // Listen for deep links while the app is running (from Rust on_open_url)
-    const unlistenTauri = listen<string[]>("deep-link", (event) => {
-      const urls = event.payload;
-      if (urls && urls.length > 0) {
-        const route = parseDeepLinkUrl(urls[0]);
-        if (route) navigate(route);
-      }
+      // Also listen via the JS plugin API (covers all platforms)
+      const unlistenPlugin = onOpenUrl((urls) => {
+        if (urls && urls.length > 0) {
+          const route = parseDeepLinkUrl(urls[0].toString());
+          if (route) navigate(route);
+        }
+      });
+
+      // Store cleanup refs
+      cleanupRef.current = () => {
+        unlistenTauri.then((fn) => fn());
+        unlistenPlugin.then((fn) => fn());
+      };
     });
 
-    // Also listen via the JS plugin API (covers all platforms)
-    const unlistenPlugin = onOpenUrl((urls) => {
-      if (urls && urls.length > 0) {
-        const route = parseDeepLinkUrl(urls[0].toString());
-        if (route) navigate(route);
-      }
-    });
+    const cleanupRef = { current: () => {} };
 
     return () => {
-      unlistenTauri.then((fn) => fn());
-      unlistenPlugin.then((fn) => fn());
+      cancelled = true;
+      cleanupRef.current();
     };
   }, [navigate]);
 }

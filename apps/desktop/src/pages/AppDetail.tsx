@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, useRef } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { listenWsEvent } from "../api/listenWsEvent";
 import { getApp, listRequests } from "../api/client";
 import { StatusBadge } from "../components/StatusBadge";
 import { LogViewer } from "../components/LogViewer";
@@ -59,8 +59,7 @@ export function AppDetailPage({ name, navigate }: AppDetailPageProps) {
 
   // Listen for app:removed ws-event
   useEffect(() => {
-    const unlisten = listen<WsEvent>("ws-event", (tauriEvent) => {
-      const event = tauriEvent.payload;
+    const unlisten = listenWsEvent((event: WsEvent) => {
       if (event.type === "app:removed" && event.name === name) {
         setRemoved(true);
       }
@@ -68,9 +67,7 @@ export function AppDetailPage({ name, navigate }: AppDetailPageProps) {
         setRemoved(true);
       }
     });
-    return () => {
-      unlisten.then((fn) => fn());
-    };
+    return unlisten;
   }, [name]);
 
   // Auto-navigate back after countdown when removed

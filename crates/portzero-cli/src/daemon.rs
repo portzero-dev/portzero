@@ -2,7 +2,8 @@
 //!
 //! Starts the PortZero proxy as a Pingora `Server`, with the `PortZeroProxy`
 //! `ProxyHttp` implementation handling all traffic.
-//! Also starts the control socket for CLI ↔ daemon communication.
+//! Also starts the control socket for CLI ↔ daemon communication,
+//! and the axum API server that powers the embedded web dashboard.
 
 use anyhow::Result;
 use pingora_core::server::Server;
@@ -16,7 +17,7 @@ use portzero_core::proxy::PortZeroProxy;
 use portzero_core::recorder::Recorder;
 use portzero_core::router::Router;
 use portzero_core::store::Store;
-use portzero_core::types::DEFAULT_PROXY_PORT;
+use portzero_core::types::{DEFAULT_PROXY_PORT, RESERVED_SUBDOMAIN};
 use portzero_core::ws::WsHub;
 use std::path::Path;
 use std::sync::Arc;
@@ -68,10 +69,11 @@ impl AppState {
 
 /// Start the proxy daemon.
 ///
-/// Runs three things concurrently:
+/// Runs four things concurrently:
 /// 1. Pingora proxy on port 1337 (on a dedicated thread — it creates its own runtime)
 /// 2. Control socket on ~/.portzero/portzero.sock (for CLI registration)
-/// 3. PID file management
+/// 3. Axum API server on a random local port (dashboard + REST API + WebSocket)
+/// 4. PID file management
 pub async fn start(_daemonize: bool, state_dir: &Path) -> Result<()> {
     // Ensure certs exist
     let generated = certs::ensure_certs(state_dir)?;
@@ -96,6 +98,34 @@ pub async fn start(_daemonize: bool, state_dir: &Path) -> Result<()> {
     let pid_file = state_dir.join("portzero.pid");
     std::fs::write(&pid_file, std::process::id().to_string())?;
 
+    // ── Start the axum API server on a random port ─────────────────────
+    let api_state = portzero_api::AppState::new_with_state_dir(
+        app_state.store.clone(),
+        app_state.ws_hub.clone(),
+        state_dir.to_path_buf(),
+    );
+    let api_router = portzero_api::build_router(api_state);
+    let api_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+    let api_port = api_listener.local_addr()?.port();
+
+    tracing::info!(port = api_port, "API server listening");
+
+    tokio::spawn(async move {
+        if let Err(e) = axum::serve(api_listener, api_router).await {
+            tracing::error!("API server error: {e}");
+        }
+    });
+
+    // Register the dashboard/API as a route so Pingora proxies to it.
+    // This makes `_portzero.localhost:1337` → `127.0.0.1:<api_port>`.
+    app_state.router.register(
+        RESERVED_SUBDOMAIN.to_string(),
+        api_port,
+        std::process::id(),
+        vec!["portzero-api".to_string()],
+        state_dir.to_path_buf(),
+    );
+
     // Create the Pingora proxy
     let proxy = PortZeroProxy::new(
         app_state.router.clone(),
@@ -106,7 +136,10 @@ pub async fn start(_daemonize: bool, state_dir: &Path) -> Result<()> {
     );
 
     println!("PortZero proxy starting on http://localhost:{}", proxy_port);
-    println!("Dashboard: http://_portzero.localhost:{}", proxy_port);
+    println!(
+        "Dashboard: http://{}.localhost:{}",
+        RESERVED_SUBDOMAIN, proxy_port
+    );
     println!(
         "Control socket: {}",
         control::socket_path(state_dir).display()

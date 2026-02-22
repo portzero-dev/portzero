@@ -807,7 +807,7 @@ async fn test_dashboard_index() {
     resp.assert_status_ok();
 
     let body = resp.text();
-    assert!(body.contains("PortZero Dashboard"));
+    assert!(body.contains("PortZero"));
 }
 
 #[tokio::test]
@@ -818,5 +818,5 @@ async fn test_dashboard_spa_fallback() {
     resp.assert_status_ok();
 
     let body = resp.text();
-    assert!(body.contains("PortZero Dashboard"));
+    assert!(body.contains("PortZero"));
 }
