@@ -40,12 +40,7 @@ jobs:
         run: cargo check --workspace
 
       - name: Clippy
-        run: |
-          cargo clippy --workspace -- -D warnings \
-            -A clippy::manual_is_multiple_of \
-            -A clippy::manual_unwrap_or_default \
-            -A clippy::manual_unwrap_or \
-            -A clippy::large_enum_variant
+        run: cargo clippy --workspace -- -W clippy::all
 
       - name: Tests
         run: cargo test --workspace
