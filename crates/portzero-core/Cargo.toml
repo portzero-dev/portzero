@@ -1,0 +1,49 @@
+[package]
+name = "portzero-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Core library for PortZero - proxy, router, recorder, process manager"
+
+[dependencies]
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+rusqlite = { workspace = true }
+r2d2 = { workspace = true }
+r2d2_sqlite = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+dashmap = { workspace = true }
+bytes = { workspace = true }
+http = { workspace = true }
+rcgen = { workspace = true }
+rustls = { workspace = true }
+rustls-pemfile = { workspace = true }
+tokio-rustls = "0.26"
+rustls-native-certs = "0.8"
+url = "2.5"
+localup-client = { workspace = true, optional = true }
+pingora = { workspace = true }
+pingora-core = { workspace = true }
+pingora-proxy = { workspace = true }
+pingora-http = { workspace = true }
+pingora-error = { workspace = true }
+rand = "0.9"
+
+[features]
+default = []
+tunnel = ["localup-client"]
+
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+tempfile = "3"

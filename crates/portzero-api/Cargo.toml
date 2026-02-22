@@ -1,0 +1,40 @@
+[package]
+name = "portzero-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "HTTP API + WebSocket server for PortZero dashboard"
+
+[dependencies]
+portzero-core = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+dashmap = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+rust-embed = { version = "8", features = ["mime-guess"] }
+mime_guess = "2"
+futures-util = "0.3"
+tokio-stream = "0.1"
+bytes = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+dirs-next = "2"
+
+[features]
+default = []
+tunnel = ["portzero-core/tunnel"]
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+axum-test = "18"
+tempfile = "3"
+tracing-subscriber = { workspace = true }

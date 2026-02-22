@@ -1,0 +1,102 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/portzero-core",
+    "crates/portzero-cli",
+    "crates/portzero-api",
+    "crates/portzero-mcp",
+    "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["PortZero Contributors"]
+repository = "https://github.com/portzero/portzero"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# Database
+rusqlite = { version = "0.31", features = ["bundled"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.24"
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# UUID
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Concurrency
+dashmap = "6"
+
+# HTTP types
+bytes = "1"
+http = "1"
+
+# TLS
+rcgen = "0.13"
+rustls = { version = "0.23", features = ["ring"] }
+rustls-pemfile = "2"
+
+# Pingora
+pingora = { version = "0.7", features = ["lb"] }
+pingora-core = "0.7"
+pingora-proxy = "0.7"
+pingora-http = "0.7"
+pingora-error = "0.7"
+
+# Unix
+libc = "0.2"
+
+# Web (axum)
+axum = { version = "0.8", features = ["ws", "macros"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Workspace crates
+portzero-core = { path = "crates/portzero-core" }
+portzero-api = { path = "crates/portzero-api" }
+portzero-mcp = { path = "crates/portzero-mcp" }
+
+# LocalUp tunnel client (open source)
+# Uses git dependency. For local dev, override with [patch] below.
+localup-client = { git = "https://github.com/localup-dev/localup", default-features = false }
+
+# Local development: override git deps with local checkout.
+# Uncomment the section below if you have localup-dev checked out at ../localup-dev.
+# [patch.'https://github.com/localup-dev/localup']
+# localup-client = { path = "../localup-dev/crates/localup-client" }
+# localup-proto = { path = "../localup-dev/crates/localup-proto" }
+# localup-connection = { path = "../localup-dev/crates/localup-connection" }
+# localup-auth = { path = "../localup-dev/crates/localup-auth" }
+# localup-http-auth = { path = "../localup-dev/crates/localup-http-auth" }
+# localup-transport = { path = "../localup-dev/crates/localup-transport" }
+# localup-transport-quic = { path = "../localup-dev/crates/localup-transport-quic" }
+# localup-transport-websocket = { path = "../localup-dev/crates/localup-transport-websocket" }
+# localup-transport-h2 = { path = "../localup-dev/crates/localup-transport-h2" }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

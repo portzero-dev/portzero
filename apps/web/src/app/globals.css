@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+@theme {
+  --color-violet-primary: #8b5cf6;
+  --color-violet-hover: #7c3aed;
+  --color-violet-glow: rgba(139, 92, 246, 0.15);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* ── Docs prose styling ──────────────────────────────────── */
+
+.docs-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.docs-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #27272a;
+}
+
+.docs-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.docs-content p {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.75;
+  color: #a1a1aa;
+}
+
+.docs-content ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.docs-content li {
+  color: #a1a1aa;
+  line-height: 1.75;
+  margin-top: 0.25rem;
+}
+
+.docs-content code {
+  background: #27272a;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  color: #c4b5fd;
+}
+
+.docs-content pre {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  overflow-x: auto;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.docs-content pre code {
+  background: transparent;
+  padding: 0;
+  color: #d4d4d8;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.docs-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.docs-content th {
+  text-align: left;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #3f3f46;
+  color: #e4e4e7;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.docs-content td {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #27272a;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+}
+
+.docs-content blockquote {
+  border-left: 3px solid #8b5cf6;
+  padding-left: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  color: #a1a1aa;
+  font-style: italic;
+}
+
+/* ── Shiki code block styling ──────────────────────────────── */
+
+.code-block {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid #27272a;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.code-block pre {
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 1.25rem !important;
+  overflow-x: auto;
+}
+
+.code-block pre code {
+  background: transparent !important;
+  padding: 0 !important;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.code-block .shiki {
+  background-color: #101010 !important;
+}
+
+.code-block .shiki code .line {
+  display: block;
+}
+
+/* ── Mermaid diagram styling ──────────────────────────────── */
+
+.mermaid-block {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid #27272a;
+  background: #101010;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mermaid-block svg {
+  max-width: 100%;
+  height: auto;
+}

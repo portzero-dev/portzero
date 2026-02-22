@@ -1,0 +1,37 @@
+[package]
+name = "portzero-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "CLI binary for PortZero"
+
+[[bin]]
+name = "portzero"
+path = "src/main.rs"
+
+[dependencies]
+portzero-core = { workspace = true }
+tokio = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+which = "7"
+dirs-next = "2"
+ctrlc = "3"
+rpassword = "7"
+pingora = { workspace = true }
+pingora-core = { workspace = true }
+pingora-proxy = { workspace = true }
+
+[features]
+default = []
+tunnel = ["portzero-core/tunnel"]
+
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }

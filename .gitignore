@@ -1,0 +1,38 @@
+# Build artifacts
+target/
+dist/
+dashboard-dist/dist/
+
+# Cargo local config (used for local [patch] overrides)
+.cargo/
+
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# SQLite databases (local state)
+*.db
+*.db-wal
+*.db-shm
+
+# Tauri build artifacts
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/schemas/

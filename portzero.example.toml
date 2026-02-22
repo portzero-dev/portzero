@@ -1,0 +1,32 @@
+# PortZero configuration file
+# Place this as `portzero.toml` in your project root.
+# Run `portzero up` to start all defined apps.
+
+[proxy]
+port = 1337       # Proxy listening port (default: 1337)
+https = true      # Enable HTTPS with auto-generated certs
+
+# Optional: tunnel configuration for `portzero share`
+# [tunnel]
+# relay = "tunnel.kfs.es:4443"          # Default hosted relay
+# relay = "my-relay.example.com:4443"   # Self-hosted relay
+# token = "your-jwt-token"              # Or set PORTZERO_TUNNEL_TOKEN env var
+# transport = "quic"                    # quic (default), websocket, or h2
+
+[apps.web]
+command = "pnpm dev"
+cwd = "./apps/web"
+auto_restart = true
+
+[apps.web.env]
+NODE_ENV = "development"
+
+[apps.api]
+command = "pnpm start"
+cwd = "./apps/api"
+subdomain = "api.myapp"       # Available at api.myapp.localhost:1337
+auto_restart = true
+
+[apps.docs]
+command = "pnpm dev"
+cwd = "./apps/docs"

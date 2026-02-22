@@ -1,0 +1,133 @@
+name: Release CLI
+
+on:
+  push:
+    tags:
+      - "cli-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. cli-v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: portzero-linux-x86_64
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: portzero-linux-aarch64
+            cross: true
+          - target: x86_64-apple-darwin
+            os: macos-13
+            name: portzero-darwin-x86_64
+          - target: aarch64-apple-darwin
+            os: macos-14
+            name: portzero-darwin-aarch64
+
+    runs-on: ${{ matrix.os }}
+    name: CLI / ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      # Linux native deps (Pingora needs cmake + protobuf)
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux' && !matrix.cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake protobuf-compiler build-essential pkg-config
+
+      # Cross-compilation for aarch64 Linux
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build (native)
+        if: "!matrix.cross"
+        run: |
+          cargo build --release --target ${{ matrix.target }} \
+            --package portzero-cli
+
+      - name: Build (cross)
+        if: matrix.cross
+        run: |
+          cross build --release --target ${{ matrix.target }} \
+            --package portzero-cli
+
+      - name: Package binary
+        shell: bash
+        run: |
+          src="target/${{ matrix.target }}/release/portzero"
+          dst="${{ matrix.name }}"
+          mkdir -p "dist"
+          cp "$src" "dist/portzero"
+          cd dist
+          tar czf "../${dst}.tar.gz" portzero
+          cd ..
+          rm -rf dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Publish release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate checksums
+        working-directory: artifacts
+        run: |
+          find . -name '*.tar.gz' -exec mv {} . \;
+          sha256sum *.tar.gz > SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "CLI ${{ steps.tag.outputs.tag }}"
+          generate_release_notes: true
+          files: |
+            artifacts/*.tar.gz
+            artifacts/SHA256SUMS.txt
