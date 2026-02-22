@@ -11,6 +11,9 @@ import {
   ArrowRight,
   Github,
   ChevronRight,
+  Download,
+  Apple,
+  Monitor,
 } from "lucide-react";
 
 function Navbar() {
@@ -41,6 +44,12 @@ function Navbar() {
             className="text-sm text-zinc-400 transition-colors hover:text-white"
           >
             Quick Start
+          </a>
+          <a
+            href="#download"
+            className="text-sm text-zinc-400 transition-colors hover:text-white"
+          >
+            Download
           </a>
           <a
             href="/docs"
@@ -531,6 +540,113 @@ function CLI() {
   );
 }
 
+const GITHUB_RELEASE_URL =
+  "https://github.com/dviejokfs/portzero/releases/latest";
+
+const downloads: {
+  platform: string;
+  icon: React.ElementType;
+  builds: { label: string; href: string; badge?: string }[];
+}[] = [
+  {
+    platform: "macOS",
+    icon: Apple,
+    builds: [
+      {
+        label: "Apple Silicon (M1+)",
+        href: `${GITHUB_RELEASE_URL}/download/PortZero_aarch64.dmg`,
+        badge: "arm64",
+      },
+      {
+        label: "Intel",
+        href: `${GITHUB_RELEASE_URL}/download/PortZero_x64.dmg`,
+        badge: "x64",
+      },
+    ],
+  },
+  {
+    platform: "Linux",
+    icon: Monitor,
+    builds: [
+      {
+        label: "AppImage",
+        href: `${GITHUB_RELEASE_URL}/download/PortZero_amd64.AppImage`,
+        badge: "x64",
+      },
+      {
+        label: "Debian / Ubuntu",
+        href: `${GITHUB_RELEASE_URL}/download/PortZero_amd64.deb`,
+        badge: ".deb",
+      },
+    ],
+  },
+];
+
+function DesktopDownload() {
+  return (
+    <section id="download" className="border-t border-zinc-800 py-24">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold sm:text-4xl">
+            Download the Desktop App
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-zinc-400">
+            A native app for managing apps, inspecting traffic, creating mocks,
+            and simulating networks. Built with Tauri v2.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-16 grid max-w-3xl gap-6 sm:grid-cols-2">
+          {downloads.map((platform) => (
+            <div
+              key={platform.platform}
+              className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
+            >
+              <div className="flex items-center gap-3">
+                <div className="inline-flex rounded-lg bg-zinc-800 p-2.5 text-violet-primary">
+                  <platform.icon className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-semibold">{platform.platform}</h3>
+              </div>
+              <div className="mt-5 space-y-3">
+                {platform.builds.map((build) => (
+                  <a
+                    key={build.label}
+                    href={build.href}
+                    className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/50 px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-violet-primary/40 hover:text-white"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Download className="h-4 w-4 text-zinc-500" />
+                      {build.label}
+                    </span>
+                    {build.badge && (
+                      <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                        {build.badge}
+                      </span>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-8 text-center text-sm text-zinc-500">
+          Windows support coming soon.{" "}
+          <a
+            href={GITHUB_RELEASE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-violet-primary transition-colors hover:text-violet-hover"
+          >
+            View all releases on GitHub
+          </a>
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function CTA() {
   return (
     <section className="border-t border-zinc-800 py-24">
@@ -606,6 +722,7 @@ export default function Home() {
         <Features />
         <QuickStart />
         <CLI />
+        <DesktopDownload />
         <CTA />
       </main>
       <Footer />
