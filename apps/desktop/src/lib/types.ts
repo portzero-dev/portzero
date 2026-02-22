@@ -64,6 +64,7 @@ export interface RequestDetail {
 
   // Metadata
   mocked: boolean;
+  intercepted: boolean;
   parent_id: string | null;
 }
 
@@ -214,5 +215,7 @@ export type WsEvent =
   | { type: "app:restarted"; name: string; pid: number }
   | { type: "log:line"; app: string; stream: "stdout" | "stderr"; line: string; timestamp: string }
   | { type: "mock:hit"; mock_id: string; request_id: string }
+  | { type: "intercept:pending"; id: string; app: string; method: string; url: string }
+  | { type: "intercept:decided"; id: string; action: "forward" | "drop" }
   | { type: "tunnel:started"; app: string; public_url: string }
   | { type: "tunnel:stopped"; app: string };
