@@ -67,6 +67,27 @@ impl AppState {
     }
 }
 
+/// Guard that removes PID file and control socket on drop.
+/// Ensures cleanup happens regardless of how the daemon exits (signal, crash, normal).
+struct CleanupGuard {
+    pid_file: std::path::PathBuf,
+    socket_path: std::path::PathBuf,
+}
+
+impl Drop for CleanupGuard {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.pid_file);
+        let _ = std::fs::remove_file(&self.socket_path);
+    }
+}
+
+/// Check whether a process with the given PID is still alive.
+#[cfg(unix)]
+pub fn is_process_alive(pid: i32) -> bool {
+    // kill with signal 0 checks existence without sending a signal
+    unsafe { libc::kill(pid, 0) == 0 }
+}
+
 /// Start the proxy daemon.
 ///
 /// Runs four things concurrently:
@@ -74,7 +95,11 @@ impl AppState {
 /// 2. Control socket on ~/.portzero/portzero.sock (for CLI registration)
 /// 3. Axum API server on a random local port (dashboard + REST API + WebSocket)
 /// 4. PID file management
-pub async fn start(_daemonize: bool, state_dir: &Path) -> Result<()> {
+pub async fn start(daemonize: bool, state_dir: &Path) -> Result<()> {
+    if daemonize {
+        return start_background(state_dir).await;
+    }
+
     // Ensure certs exist
     let generated = certs::ensure_certs(state_dir)?;
     if generated {
@@ -97,6 +122,13 @@ pub async fn start(_daemonize: bool, state_dir: &Path) -> Result<()> {
     // Write PID file
     let pid_file = state_dir.join("portzero.pid");
     std::fs::write(&pid_file, std::process::id().to_string())?;
+
+    // Register cleanup guard — removes PID file and socket when dropped,
+    // regardless of how the function exits (normal return, panic, signal).
+    let _cleanup = CleanupGuard {
+        pid_file: pid_file.clone(),
+        socket_path: control::socket_path(state_dir),
+    };
 
     // ── Start the axum API server on a random port ─────────────────────
     let api_state = portzero_api::AppState::new_with_state_dir(
@@ -200,19 +232,78 @@ pub async fn start(_daemonize: bool, state_dir: &Path) -> Result<()> {
 
     server.add_service(proxy_service);
 
+    // Use `server.run()` instead of `server.run_forever()` because
+    // `run_forever()` ends with `std::process::exit(0)` which kills the
+    // process without running destructors — our CleanupGuard would never
+    // execute and the PID file / socket would be left behind.
     let handle = std::thread::spawn(move || {
-        server.run_forever();
+        server.run(pingora_core::server::RunArgs::default());
     });
 
     handle
         .join()
         .map_err(|_| anyhow::anyhow!("Pingora server thread panicked"))?;
 
-    // Cleanup
-    let _ = std::fs::remove_file(&pid_file);
-    let _ = std::fs::remove_file(control::socket_path(state_dir));
+    // _cleanup guard handles PID file and socket removal on drop
 
     Ok(())
+}
+
+/// Start the daemon as a detached background process.
+///
+/// Re-execs `portzero start` (without `--daemon`) as a detached child,
+/// waits for the control socket to become responsive, then returns.
+async fn start_background(state_dir: &Path) -> Result<()> {
+    // Check if already running
+    if let Some(mut client) = control::ControlClient::connect(state_dir).await {
+        if client.ping().await {
+            println!("Daemon is already running.");
+            return Ok(());
+        }
+    }
+
+    println!("Starting PortZero daemon in the background...");
+
+    let exe = std::env::current_exe()?;
+    let mut cmd = std::process::Command::new(&exe);
+    cmd.arg("start"); // without --daemon, so it runs in foreground in the child
+
+    // Detach: redirect stdio and create new session
+    cmd.stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::setsid();
+                Ok(())
+            });
+        }
+    }
+
+    cmd.spawn()?;
+
+    // Wait for the daemon to start (poll the control socket)
+    for i in 0..50 {
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        if let Some(mut client) = control::ControlClient::connect(state_dir).await {
+            if client.ping().await {
+                println!("Daemon started (PID file: {})", state_dir.join("portzero.pid").display());
+                return Ok(());
+            }
+        }
+        if i == 10 {
+            println!("Waiting for daemon to start...");
+        }
+    }
+
+    anyhow::bail!(
+        "Failed to start daemon after 5 seconds.\n\
+         Check logs or try: portzero start (foreground)"
+    )
 }
 
 /// Stop the proxy daemon (sends SIGQUIT to the running process).
@@ -228,6 +319,14 @@ pub async fn stop(state_dir: &Path) -> Result<()> {
 
     #[cfg(unix)]
     {
+        if !is_process_alive(pid) {
+            // Process is already dead — just clean up stale files
+            println!("Daemon (PID {}) is no longer running. Cleaning up stale files...", pid);
+            let _ = std::fs::remove_file(&pid_file);
+            let _ = std::fs::remove_file(control::socket_path(state_dir));
+            return Ok(());
+        }
+
         // Pingora signal semantics:
         //   SIGTERM = graceful terminate
         //   SIGINT  = fast shutdown
@@ -237,7 +336,10 @@ pub async fn stop(state_dir: &Path) -> Result<()> {
             .output()?;
         if output.status.success() {
             println!("Sent SIGTERM to daemon (PID {})", pid);
-            std::fs::remove_file(&pid_file)?;
+            // Give the process a moment to exit and let its CleanupGuard run
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            // Remove stale files in case the guard didn't run
+            let _ = std::fs::remove_file(&pid_file);
             let _ = std::fs::remove_file(control::socket_path(state_dir));
         } else {
             println!("Failed to send signal to PID {}", pid);
@@ -287,11 +389,27 @@ pub async fn status(state_dir: &Path) -> Result<()> {
     let pid_file = state_dir.join("portzero.pid");
     if pid_file.exists() {
         let pid_str = std::fs::read_to_string(&pid_file)?;
-        println!(
-            "Daemon PID file exists (PID {}), but not responding on control socket.",
-            pid_str.trim()
-        );
-        println!("It may have crashed. Remove the PID file and restart.");
+        let pid: i32 = pid_str.trim().parse().unwrap_or(0);
+
+        #[cfg(unix)]
+        let alive = pid > 0 && is_process_alive(pid);
+        #[cfg(not(unix))]
+        let alive = false;
+
+        if alive {
+            println!(
+                "Daemon process is running (PID {}), but not responding on control socket.",
+                pid
+            );
+            println!("It may be starting up or stuck. Try: portzero stop");
+        } else {
+            // Process is dead — clean up stale files automatically
+            println!("Daemon is not running (stale PID file for PID {}).", pid);
+            println!("Cleaning up stale state files...");
+            let _ = std::fs::remove_file(&pid_file);
+            let _ = std::fs::remove_file(control::socket_path(state_dir));
+            println!("Done. Start the daemon with: portzero start");
+        }
     } else {
         println!("Daemon not running.");
     }

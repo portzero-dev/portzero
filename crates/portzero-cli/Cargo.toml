@@ -35,5 +35,9 @@ pingora-proxy = { workspace = true }
 default = []
 tunnel = ["portzero-core/tunnel", "portzero-api/tunnel"]
 
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["test-util", "macros"] }
+
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }

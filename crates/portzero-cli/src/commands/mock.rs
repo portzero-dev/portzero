@@ -1,22 +1,24 @@
 //! CLI command: `portzero mock`
 //!
-//! Manage response mock rules for apps.
+//! Manage response mock rules for apps via the daemon's control socket.
 //!
 //! # Usage
 //!
 //! ```sh
-//! portzero mock my-app POST /api/payments --status 500 --body '{"error":"declined"}'
-//! portzero mock my-app GET "/api/users/*" --status 200 --body-file ./fixtures/users.json
+//! portzero mock add my-app POST /api/payments --status 500 --body '{"error":"declined"}'
+//! portzero mock add my-app GET "/api/users/*" --status 200 --body-file ./fixtures/users.json
 //! portzero mock list
+//! portzero mock enable <id>
 //! portzero mock disable <id>
 //! portzero mock delete <id>
 //! ```
 
+use anyhow::Result;
 use clap::Subcommand;
-use portzero_core::mock_engine::MockEngine;
-use portzero_core::types::MockRule;
+use portzero_core::control::ControlClient;
+use portzero_core::types::CreateMockRule;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::path::Path;
 
 /// Mock subcommands.
 #[derive(Debug, Subcommand)]
@@ -65,8 +67,15 @@ pub enum MockCommand {
     },
 }
 
-/// Execute a mock command.
-pub fn execute(cmd: &MockCommand, mock_engine: &Arc<MockEngine>) -> anyhow::Result<()> {
+/// Execute a mock command via the daemon's control socket.
+pub async fn execute_via_daemon(cmd: &MockCommand, state_dir: &Path) -> Result<()> {
+    let Some(mut client) = ControlClient::connect(state_dir).await else {
+        anyhow::bail!(
+            "Cannot connect to daemon. Is it running?\n\
+             Start it with: portzero start"
+        );
+    };
+
     match cmd {
         MockCommand::Add {
             app,
@@ -98,7 +107,7 @@ pub fn execute(cmd: &MockCommand, mock_engine: &Arc<MockEngine>) -> anyhow::Resu
                 }
             }
 
-            // If body looks like JSON and no Content-Type header is set, add it
+            // Auto-add Content-Type for JSON bodies
             if !response_body.is_empty()
                 && (response_body.starts_with('{') || response_body.starts_with('['))
                 && !response_headers.contains_key("Content-Type")
@@ -106,31 +115,39 @@ pub fn execute(cmd: &MockCommand, mock_engine: &Arc<MockEngine>) -> anyhow::Resu
                 response_headers.insert("Content-Type".to_string(), "application/json".to_string());
             }
 
-            let rule = mock_engine.add_mock(
-                app.clone(),
-                Some(method.to_uppercase()),
-                path.clone(),
-                *status,
+            let rule = CreateMockRule {
+                app_name: app.clone(),
+                method: Some(method.to_uppercase()),
+                path_pattern: path.clone(),
+                status_code: *status,
                 response_headers,
                 response_body,
-            );
+                enabled: true,
+            };
 
-            println!("Mock created:");
-            println!("  ID:      {}", rule.id);
-            println!("  App:     {}", rule.app_name);
-            println!(
-                "  Match:   {} {}",
-                rule.method.as_deref().unwrap_or("*"),
-                rule.path_pattern
-            );
-            println!("  Status:  {}", rule.status_code);
-            println!("  Enabled: true");
+            match client.create_mock(rule).await {
+                Ok(mock) => {
+                    println!("Mock created:");
+                    println!("  ID:      {}", mock.id);
+                    println!("  App:     {}", mock.app_name);
+                    println!(
+                        "  Match:   {} {}",
+                        mock.method.as_deref().unwrap_or("*"),
+                        mock.path_pattern
+                    );
+                    println!("  Status:  {}", mock.status_code);
+                    println!("  Enabled: true");
+                }
+                Err(e) => anyhow::bail!("Failed to create mock: {e}"),
+            }
         }
 
         MockCommand::List { app } => {
-            let mocks = match app {
-                Some(app_name) => mock_engine.list_mocks_for_app(app_name),
-                None => mock_engine.list_mocks(),
+            let mocks = client.list_mocks().await?;
+
+            let mocks: Vec<_> = match app {
+                Some(app_name) => mocks.into_iter().filter(|m| &m.app_name == app_name).collect(),
+                None => mocks,
             };
 
             if mocks.is_empty() {
@@ -159,26 +176,39 @@ pub fn execute(cmd: &MockCommand, mock_engine: &Arc<MockEngine>) -> anyhow::Resu
         }
 
         MockCommand::Enable { id } => {
-            match mock_engine.update_mock(id, None, None, None, None, None, Some(true)) {
-                Some(_) => println!("Mock '{}' enabled.", id),
-                None => anyhow::bail!("Mock '{}' not found.", id),
+            let updates = portzero_core::types::UpdateMockRule {
+                method: None,
+                path_pattern: None,
+                status_code: None,
+                response_headers: None,
+                response_body: None,
+                enabled: Some(true),
+            };
+            match client.update_mock(id, updates).await {
+                Ok(_) => println!("Mock '{}' enabled.", id),
+                Err(e) => anyhow::bail!("Failed to enable mock '{}': {e}", id),
             }
         }
 
         MockCommand::Disable { id } => {
-            match mock_engine.update_mock(id, None, None, None, None, None, Some(false)) {
-                Some(_) => println!("Mock '{}' disabled.", id),
-                None => anyhow::bail!("Mock '{}' not found.", id),
+            let updates = portzero_core::types::UpdateMockRule {
+                method: None,
+                path_pattern: None,
+                status_code: None,
+                response_headers: None,
+                response_body: None,
+                enabled: Some(false),
+            };
+            match client.update_mock(id, updates).await {
+                Ok(_) => println!("Mock '{}' disabled.", id),
+                Err(e) => anyhow::bail!("Failed to disable mock '{}': {e}", id),
             }
         }
 
-        MockCommand::Delete { id } => {
-            if mock_engine.remove_mock(id) {
-                println!("Mock '{}' deleted.", id);
-            } else {
-                anyhow::bail!("Mock '{}' not found.", id);
-            }
-        }
+        MockCommand::Delete { id } => match client.delete_mock(id).await {
+            Ok(()) => println!("Mock '{}' deleted.", id),
+            Err(e) => anyhow::bail!("Failed to delete mock '{}': {e}", id),
+        },
     }
     Ok(())
 }

@@ -17,10 +17,13 @@ use portzero_core::types::*;
 use serde::Deserialize;
 
 /// GET /api/apps — List all registered apps.
+///
+/// Filters out the internal `_portzero` dashboard route.
 pub async fn list_apps(State(state): State<AppState>) -> impl IntoResponse {
     let apps: Vec<AppInfo> = state
         .apps
         .iter()
+        .filter(|entry| entry.key() != RESERVED_SUBDOMAIN)
         .map(|entry| entry.value().clone())
         .collect();
     Json(apps)

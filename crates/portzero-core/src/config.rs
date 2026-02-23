@@ -205,4 +205,100 @@ subdomain = "api.myapp"
         assert_eq!(config.proxy.port, DEFAULT_PROXY_PORT);
         assert!(!config.proxy.https);
     }
+
+    #[test]
+    fn test_parse_no_apps_section() {
+        let toml = r#"
+[proxy]
+port = 1337
+https = false
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert!(config.apps.is_empty());
+    }
+
+    #[test]
+    fn test_parse_app_with_all_fields() {
+        let toml = r#"
+[proxy]
+port = 1337
+
+[apps.full]
+command = "cargo run"
+cwd = "./backend"
+subdomain = "api"
+auto_restart = false
+
+[apps.full.env]
+RUST_LOG = "debug"
+DATABASE_URL = "postgres://localhost/mydb"
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        let app = &config.apps["full"];
+        assert_eq!(app.command, "cargo run");
+        assert_eq!(app.cwd.as_deref(), Some(std::path::Path::new("./backend")));
+        assert_eq!(app.subdomain.as_deref(), Some("api"));
+        assert!(!app.auto_restart);
+        assert_eq!(app.env.len(), 2);
+        assert_eq!(app.env.get("RUST_LOG").map(|s| s.as_str()), Some("debug"));
+    }
+
+    #[test]
+    fn test_parse_app_minimal_defaults() {
+        let toml = r#"
+[proxy]
+port = 1337
+
+[apps.minimal]
+command = "echo hello"
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        let app = &config.apps["minimal"];
+        assert_eq!(app.command, "echo hello");
+        assert!(app.cwd.is_none());
+        assert!(app.subdomain.is_none());
+        // auto_restart defaults to false (serde default for bool)
+        assert!(!app.auto_restart);
+        assert!(app.env.is_empty());
+    }
+
+    #[test]
+    fn test_parse_multiple_apps() {
+        let toml = r#"
+[proxy]
+port = 1337
+
+[apps.web]
+command = "pnpm dev"
+
+[apps.api]
+command = "pnpm start"
+
+[apps.worker]
+command = "python worker.py"
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.apps.len(), 3);
+        assert!(config.apps.contains_key("web"));
+        assert!(config.apps.contains_key("api"));
+        assert!(config.apps.contains_key("worker"));
+    }
+
+    #[test]
+    fn test_parse_invalid_toml() {
+        let toml = "this is not valid toml!!!";
+        let result: Result<Config, _> = toml::from_str(toml);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_empty_proxy() {
+        // Proxy section with no fields — should use defaults
+        let toml = r#"
+[proxy]
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.proxy.port, DEFAULT_PROXY_PORT);
+        assert!(!config.proxy.https);
+    }
 }

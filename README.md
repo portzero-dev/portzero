@@ -15,7 +15,6 @@ PortZero assigns stable `<name>.localhost` URLs to your dev servers, captures al
 - **Network simulation** -- Latency injection, packet loss, and bandwidth throttling.
 - **API schema inference** -- Passive OpenAPI schema generation from observed traffic.
 - **Public tunnels** -- Expose local apps to the internet via [LocalUp](https://github.com/localup-dev/localup) (QUIC/WS/H2).
-- **MCP server** -- AI agent integration via [Model Context Protocol](https://modelcontextprotocol.io/) (stdio JSON-RPC).
 - **Desktop app** -- Native [Tauri v2](https://v2.tauri.app/) dashboard with system tray.
 - **Web dashboard** -- Embedded SPA served by the daemon at `_portzero.localhost:1337`.
 
@@ -92,37 +91,20 @@ portzero start [-d]                 # Start daemon (foreground or background)
 portzero stop                       # Stop the daemon
 portzero status                     # Show daemon status
 
-portzero mock <app> <method> <path> # Create a response mock
+portzero mock add <app> <method> <path>  # Create a response mock
 portzero mock list                  # List active mocks
+portzero mock enable <id>           # Enable a mock rule
+portzero mock disable <id>          # Disable a mock rule
+portzero mock delete <id>           # Delete a mock rule
 
-portzero throttle <app> [opts]      # Set network simulation
+portzero throttle set <app> [opts]  # Set network simulation
+portzero throttle list              # List active profiles
 portzero throttle clear <app>       # Clear simulation
 
 portzero share <app>                # Start public tunnel via LocalUp
 portzero trust                      # Install CA into system trust store
 portzero untrust                    # Remove CA from system trust store
-
-portzero mcp                        # Start MCP server (stdio)
 ```
-
-## MCP Integration
-
-PortZero exposes an MCP server so AI coding agents can programmatically inspect traffic, manage apps, replay requests, and read logs.
-
-Configure your agent:
-
-```json
-{
-  "mcpServers": {
-    "portzero": {
-      "command": "portzero",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-Available tools: `list_apps`, `get_app_logs`, `get_recent_requests`, `get_request_detail`, `replay_request`, `restart_app`, `get_app_schema`.
 
 ## Architecture
 
@@ -133,7 +115,6 @@ PortZero is a Cargo workspace with the following crates:
 | `portzero-core` | Core library: proxy, router, recorder, process manager, mock engine, network sim, schema inference, tunnel, certs |
 | `portzero-cli` | CLI binary (`portzero` command) |
 | `portzero-api` | HTTP API (axum) + WebSocket server |
-| `portzero-mcp` | MCP server for AI agent integration |
 | `portzero-desktop` | Tauri v2 desktop app |
 
 The React dashboard lives in `apps/desktop/` and is shared between the Tauri app and the embedded web fallback.

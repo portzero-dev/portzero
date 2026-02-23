@@ -9,7 +9,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = ["PortZero Contributors"]
@@ -68,6 +68,9 @@ pingora-error = "0.7"
 
 # Unix
 libc = "0.2"
+
+# Testing
+tempfile = "3"
 
 # Web (axum)
 axum = { version = "0.8", features = ["ws", "macros"] }

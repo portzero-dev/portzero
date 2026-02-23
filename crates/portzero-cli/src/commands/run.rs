@@ -280,3 +280,78 @@ pub fn rewrite_url(line: &str, app_port: u16, app_name: &str, proxy_port: u16) -
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::rewrite_url;
+
+    #[test]
+    fn test_rewrite_localhost() {
+        let result = rewrite_url(
+            "Server running at http://localhost:3000",
+            3000,
+            "my-app",
+            1337,
+        );
+        assert_eq!(result, "Server running at http://my-app.localhost:1337");
+    }
+
+    #[test]
+    fn test_rewrite_127() {
+        let result = rewrite_url(
+            "Listening on http://127.0.0.1:4000",
+            4000,
+            "api",
+            1337,
+        );
+        assert_eq!(result, "Listening on http://api.localhost:1337");
+    }
+
+    #[test]
+    fn test_rewrite_0000() {
+        let result = rewrite_url(
+            "Ready at http://0.0.0.0:5000/",
+            5000,
+            "web",
+            1337,
+        );
+        assert_eq!(result, "Ready at http://web.localhost:1337/");
+    }
+
+    #[test]
+    fn test_rewrite_no_match() {
+        let result = rewrite_url(
+            "Some random log line",
+            3000,
+            "app",
+            1337,
+        );
+        assert_eq!(result, "Some random log line");
+    }
+
+    #[test]
+    fn test_rewrite_different_port_no_match() {
+        // Port in output doesn't match app_port — no rewrite
+        let result = rewrite_url(
+            "http://localhost:9999",
+            3000,
+            "app",
+            1337,
+        );
+        assert_eq!(result, "http://localhost:9999");
+    }
+
+    #[test]
+    fn test_rewrite_multiple_occurrences() {
+        let result = rewrite_url(
+            "http://localhost:3000 and also http://localhost:3000/api",
+            3000,
+            "app",
+            1337,
+        );
+        assert_eq!(
+            result,
+            "http://app.localhost:1337 and also http://app.localhost:1337/api"
+        );
+    }
+}

@@ -194,23 +194,11 @@ async fn main() -> anyhow::Result<()> {
         Some(Command::Untrust) => {
             commands::trust::untrust(&state_dir)?;
         }
-        Some(Command::Mock { cmd: _ }) => {
-            // Task 4 commands need a running engine instance.
-            // In the daemon model, these would connect via API.
-            // For now, stub with a message.
-            eprintln!(
-                "Mock commands require a running daemon.\n\
-                 Start the daemon first with: portzero start\n\
-                 Then use: portzero mock <subcommand>"
-            );
-            // When integrated with the daemon, this would be:
-            // commands::mock::execute(&cmd, &mock_engine)?;
+        Some(Command::Mock { cmd }) => {
+            commands::mock::execute_via_daemon(&cmd, &state_dir).await?;
         }
-        Some(Command::Throttle { cmd: _ }) => {
-            eprintln!(
-                "Throttle commands require a running daemon.\n\
-                 Start the daemon first with: portzero start"
-            );
+        Some(Command::Throttle { cmd }) => {
+            commands::throttle::execute_via_daemon(&cmd, &state_dir).await?;
         }
         #[cfg(feature = "tunnel")]
         Some(Command::Share { cmd }) => {
@@ -289,4 +277,91 @@ fn state_dir() -> anyhow::Result<std::path::PathBuf> {
     let home = dirs_next::home_dir()
         .ok_or_else(|| anyhow::anyhow!("could not determine home directory"))?;
     Ok(home.join(".portzero"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // -----------------------------------------------------------------------
+    // disambiguate_args
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_disambiguate_known_executable() {
+        // "ls" is a known executable — name should be inferred from cwd
+        let args = vec!["ls".to_string(), "-la".to_string()];
+        let (name, cmd) = disambiguate_args(&args);
+        // Name = cwd basename, command = all args
+        assert_eq!(cmd, vec!["ls", "-la"]);
+        assert!(!name.is_empty());
+    }
+
+    #[test]
+    fn test_disambiguate_explicit_name() {
+        // "my-app" is not an executable — treated as app name
+        let args = vec![
+            "my-app".to_string(),
+            "node".to_string(),
+            "server.js".to_string(),
+        ];
+        let (name, cmd) = disambiguate_args(&args);
+        assert_eq!(name, "my-app");
+        assert_eq!(cmd, vec!["node", "server.js"]);
+    }
+
+    #[test]
+    fn test_disambiguate_single_non_executable() {
+        // Single arg that's not an executable — treated as name with empty command
+        let args = vec!["my-app".to_string()];
+        let (name, cmd) = disambiguate_args(&args);
+        assert_eq!(name, "my-app");
+        assert!(cmd.is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // is_executable
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_is_executable_known() {
+        // "ls" should exist on macOS/Linux
+        #[cfg(unix)]
+        assert!(is_executable("ls"));
+    }
+
+    #[test]
+    fn test_is_executable_unknown() {
+        assert!(!is_executable("definitely_not_a_real_command_xyz_123"));
+    }
+
+    // -----------------------------------------------------------------------
+    // cwd_basename
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_cwd_basename_not_empty() {
+        let name = cwd_basename();
+        assert!(!name.is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // state_dir
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_state_dir_default() {
+        // Without PORTZERO_STATE_DIR env, should return ~/.portzero
+        std::env::remove_var("PORTZERO_STATE_DIR");
+        let dir = state_dir().unwrap();
+        assert!(dir.ends_with(".portzero"));
+    }
+
+    #[test]
+    fn test_state_dir_env_override() {
+        std::env::set_var("PORTZERO_STATE_DIR", "/tmp/pz-test");
+        let dir = state_dir().unwrap();
+        assert_eq!(dir, std::path::PathBuf::from("/tmp/pz-test"));
+        std::env::remove_var("PORTZERO_STATE_DIR");
+    }
 }

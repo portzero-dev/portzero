@@ -162,10 +162,12 @@ pub struct RequestFilters {
 #[tauri::command]
 pub async fn list_apps(state: State<'_, DesktopState>) -> Result<Vec<AppInfo>, String> {
     // First check the local router (for apps managed by the desktop app)
+    // Filter out the internal _portzero dashboard route.
     let mut apps: Vec<AppInfo> = state
         .router
         .list()
         .iter()
+        .filter(|r| r.name != portzero_core::types::RESERVED_SUBDOMAIN)
         .map(|r| route_to_app_info(r, &state.process_manager))
         .collect();
 

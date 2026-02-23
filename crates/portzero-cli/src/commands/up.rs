@@ -290,9 +290,75 @@ pub async fn up(state_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Stop all running apps (stops the daemon).
+/// Stop all running apps and the daemon.
+///
+/// 1. Queries the daemon for all registered apps and their PIDs
+/// 2. Sends SIGTERM to each app's process group
+/// 3. Deregisters them from the daemon
+/// 4. Stops the daemon itself
 pub async fn down(state_dir: &Path) -> Result<()> {
-    println!("Stopping daemon and all apps...");
+    // Try to connect to daemon and gracefully shut down apps first
+    if let Some(mut client) = ControlClient::connect(state_dir).await {
+        if client.ping().await {
+            // Get all registered apps
+            if let Ok(portzero_core::control::ControlResponse::Apps { apps }) =
+                client
+                    .request(&portzero_core::control::ControlRequest::List)
+                    .await
+            {
+                let user_apps: Vec<_> = apps
+                    .iter()
+                    .filter(|a| a.name != "_portzero")
+                    .collect();
+
+                if !user_apps.is_empty() {
+                    println!("Stopping {} app(s)...", user_apps.len());
+
+                    for app in &user_apps {
+                        // Kill the process group (SIGTERM first)
+                        #[cfg(unix)]
+                        {
+                            let pid = app.pid as i32;
+                            // Try killing the process group first (negative PID)
+                            unsafe {
+                                libc::kill(-pid, libc::SIGTERM);
+                            }
+                            // Also send to the process directly in case it's not a group leader
+                            unsafe {
+                                libc::kill(pid, libc::SIGTERM);
+                            }
+                        }
+                        println!("  {} (PID {}) → stopped", app.name, app.pid);
+                    }
+
+                    // Give processes time to exit gracefully
+                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+                    // Force kill any remaining
+                    for app in &user_apps {
+                        #[cfg(unix)]
+                        {
+                            let pid = app.pid as i32;
+                            unsafe {
+                                libc::kill(-pid, libc::SIGKILL);
+                                libc::kill(pid, libc::SIGKILL);
+                            }
+                        }
+                    }
+
+                    // Deregister all apps
+                    // Need a fresh connection since the previous one may have been consumed
+                    if let Some(mut c) = ControlClient::connect(state_dir).await {
+                        for app in &user_apps {
+                            let _ = c.deregister(&app.name).await;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    println!("Stopping daemon...");
     crate::daemon::stop(state_dir).await?;
     println!("Done.");
     Ok(())
