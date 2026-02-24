@@ -1,7 +1,7 @@
 # Build artifacts
 target/
 dist/
-dashboard-dist/dist/
+dashboard-dist/
 
 # Cargo local config (used for local [patch] overrides)
 .cargo/
