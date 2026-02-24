@@ -291,7 +291,10 @@ async fn start_background(state_dir: &Path) -> Result<()> {
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         if let Some(mut client) = control::ControlClient::connect(state_dir).await {
             if client.ping().await {
-                println!("Daemon started (PID file: {})", state_dir.join("portzero.pid").display());
+                println!(
+                    "Daemon started (PID file: {})",
+                    state_dir.join("portzero.pid").display()
+                );
                 return Ok(());
             }
         }
@@ -321,7 +324,10 @@ pub async fn stop(state_dir: &Path) -> Result<()> {
     {
         if !is_process_alive(pid) {
             // Process is already dead — just clean up stale files
-            println!("Daemon (PID {}) is no longer running. Cleaning up stale files...", pid);
+            println!(
+                "Daemon (PID {}) is no longer running. Cleaning up stale files...",
+                pid
+            );
             let _ = std::fs::remove_file(&pid_file);
             let _ = std::fs::remove_file(control::socket_path(state_dir));
             return Ok(());

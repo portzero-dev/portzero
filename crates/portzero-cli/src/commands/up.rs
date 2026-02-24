@@ -301,15 +301,11 @@ pub async fn down(state_dir: &Path) -> Result<()> {
     if let Some(mut client) = ControlClient::connect(state_dir).await {
         if client.ping().await {
             // Get all registered apps
-            if let Ok(portzero_core::control::ControlResponse::Apps { apps }) =
-                client
-                    .request(&portzero_core::control::ControlRequest::List)
-                    .await
+            if let Ok(portzero_core::control::ControlResponse::Apps { apps }) = client
+                .request(&portzero_core::control::ControlRequest::List)
+                .await
             {
-                let user_apps: Vec<_> = apps
-                    .iter()
-                    .filter(|a| a.name != "_portzero")
-                    .collect();
+                let user_apps: Vec<_> = apps.iter().filter(|a| a.name != "_portzero").collect();
 
                 if !user_apps.is_empty() {
                     println!("Stopping {} app(s)...", user_apps.len());

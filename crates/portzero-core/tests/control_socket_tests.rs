@@ -115,11 +115,23 @@ async fn test_register_multiple_and_list() {
     let (_tmp, mut client) = setup().await;
 
     client
-        .register("app-a", 3000, 100, &["cmd-a".into()], std::path::Path::new("/tmp"))
+        .register(
+            "app-a",
+            3000,
+            100,
+            &["cmd-a".into()],
+            std::path::Path::new("/tmp"),
+        )
         .await
         .unwrap();
     client
-        .register("app-b", 3001, 101, &["cmd-b".into()], std::path::Path::new("/tmp"))
+        .register(
+            "app-b",
+            3001,
+            101,
+            &["cmd-b".into()],
+            std::path::Path::new("/tmp"),
+        )
         .await
         .unwrap();
 
@@ -140,7 +152,13 @@ async fn test_deregister() {
     let (_tmp, mut client) = setup().await;
 
     client
-        .register("my-app", 3000, 1234, &["cmd".into()], std::path::Path::new("/tmp"))
+        .register(
+            "my-app",
+            3000,
+            1234,
+            &["cmd".into()],
+            std::path::Path::new("/tmp"),
+        )
         .await
         .unwrap();
     client.deregister("my-app").await.unwrap();
@@ -198,8 +216,14 @@ async fn test_allocate_port_different_names() {
 async fn test_log_append_and_get() {
     let (_tmp, mut client) = setup().await;
 
-    client.log_append("my-app", "stdout", "hello world").await.unwrap();
-    client.log_append("my-app", "stderr", "error msg").await.unwrap();
+    client
+        .log_append("my-app", "stdout", "hello world")
+        .await
+        .unwrap();
+    client
+        .log_append("my-app", "stderr", "error msg")
+        .await
+        .unwrap();
 
     let logs = client.get_logs("my-app", None).await.unwrap();
     assert_eq!(logs.len(), 2);
@@ -434,7 +458,13 @@ async fn test_multiple_concurrent_clients() {
 
     // Client 1 registers, client 2 sees it
     client1
-        .register("shared-app", 4000, 999, &["cmd".into()], std::path::Path::new("/tmp"))
+        .register(
+            "shared-app",
+            4000,
+            999,
+            &["cmd".into()],
+            std::path::Path::new("/tmp"),
+        )
         .await
         .unwrap();
 

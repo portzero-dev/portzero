@@ -22,10 +22,7 @@ pub async fn list(state_dir: &Path) -> Result<()> {
     match client.request(&ControlRequest::List).await {
         Ok(ControlResponse::Apps { apps }) => {
             // Filter out the internal _portzero dashboard route
-            let apps: Vec<_> = apps
-                .iter()
-                .filter(|a| a.name != "_portzero")
-                .collect();
+            let apps: Vec<_> = apps.iter().filter(|a| a.name != "_portzero").collect();
 
             if apps.is_empty() {
                 println!("PortZero — http://localhost:{}", DEFAULT_PROXY_PORT);

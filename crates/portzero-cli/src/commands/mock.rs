@@ -146,7 +146,10 @@ pub async fn execute_via_daemon(cmd: &MockCommand, state_dir: &Path) -> Result<(
             let mocks = client.list_mocks().await?;
 
             let mocks: Vec<_> = match app {
-                Some(app_name) => mocks.into_iter().filter(|m| &m.app_name == app_name).collect(),
+                Some(app_name) => mocks
+                    .into_iter()
+                    .filter(|m| &m.app_name == app_name)
+                    .collect(),
                 None => mocks,
             };
 

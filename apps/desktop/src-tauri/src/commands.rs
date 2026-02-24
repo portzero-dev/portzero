@@ -167,7 +167,7 @@ pub async fn list_apps(state: State<'_, DesktopState>) -> Result<Vec<AppInfo>, S
         .router
         .list()
         .iter()
-        .filter(|r| r.name != portzero_core::types::RESERVED_SUBDOMAIN)
+        .filter(|r| r.hostname != portzero_core::types::RESERVED_SUBDOMAIN)
         .map(|r| route_to_app_info(r, &state.process_manager))
         .collect();
 

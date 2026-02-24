@@ -298,46 +298,26 @@ mod tests {
 
     #[test]
     fn test_rewrite_127() {
-        let result = rewrite_url(
-            "Listening on http://127.0.0.1:4000",
-            4000,
-            "api",
-            1337,
-        );
+        let result = rewrite_url("Listening on http://127.0.0.1:4000", 4000, "api", 1337);
         assert_eq!(result, "Listening on http://api.localhost:1337");
     }
 
     #[test]
     fn test_rewrite_0000() {
-        let result = rewrite_url(
-            "Ready at http://0.0.0.0:5000/",
-            5000,
-            "web",
-            1337,
-        );
+        let result = rewrite_url("Ready at http://0.0.0.0:5000/", 5000, "web", 1337);
         assert_eq!(result, "Ready at http://web.localhost:1337/");
     }
 
     #[test]
     fn test_rewrite_no_match() {
-        let result = rewrite_url(
-            "Some random log line",
-            3000,
-            "app",
-            1337,
-        );
+        let result = rewrite_url("Some random log line", 3000, "app", 1337);
         assert_eq!(result, "Some random log line");
     }
 
     #[test]
     fn test_rewrite_different_port_no_match() {
         // Port in output doesn't match app_port — no rewrite
-        let result = rewrite_url(
-            "http://localhost:9999",
-            3000,
-            "app",
-            1337,
-        );
+        let result = rewrite_url("http://localhost:9999", 3000, "app", 1337);
         assert_eq!(result, "http://localhost:9999");
     }
 
