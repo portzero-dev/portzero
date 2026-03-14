@@ -16,7 +16,7 @@ export async function generateMetadata({
   const post = getPost(slug);
   if (!post) return {};
   return {
-    title: `${post.title} - PortZero Blog`,
+    title: `${post.title} | PortZero`,
     description: post.description,
     alternates: {
       canonical: `https://goport0.dev/blog/${post.slug}`,

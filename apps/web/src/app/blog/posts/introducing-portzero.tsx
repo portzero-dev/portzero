@@ -69,8 +69,9 @@ export default async function IntroducingPortZero() {
 
       <h2>What PortZero Does Differently</h2>
       <p>
-        PortZero is a single Rust binary that combines five things that usually
-        require separate tools:
+        PortZero is a single Rust binary that combines{" "}
+        <a href="/docs/features">five things</a> that usually require separate
+        tools:
       </p>
       <ol>
         <li>
@@ -141,7 +142,8 @@ $ portzero logs api -f`}
 
       <h2>The Desktop App</h2>
       <p>
-        One thing that sets PortZero apart is the native desktop app, built with{" "}
+        One thing that sets PortZero apart is the{" "}
+        <a href="/docs/desktop-app">native desktop app</a>, built with{" "}
         <a
           href="https://tauri.app"
           target="_blank"
@@ -169,7 +171,10 @@ $ portzero logs api -f`}
       <h2>Multi-App Config</h2>
       <p>
         For projects with multiple services, PortZero supports a{" "}
-        <code>portzero.toml</code> config file:
+        <a href="/docs/configuration">
+          <code>portzero.toml</code> config file
+        </a>
+        :
       </p>
 
       <CodeBlock
@@ -231,7 +236,11 @@ portzero my-app next dev
 
       <p>
         Check out the{" "}
-        <a href="https://github.com/portzero-dev/portzero">
+        <a
+          href="https://github.com/portzero-dev/portzero"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           GitHub repo
         </a>
         , read the{" "}
