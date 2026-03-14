@@ -1,0 +1,61 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please describe what you'd like and why it would be useful.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this feature solve? What are you trying to do that you can't do today?
+      placeholder: "I'm frustrated when ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature or behavior you'd like. Include CLI commands, config examples, or API endpoints if relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of PortZero does this relate to?
+      options:
+        - CLI
+        - Proxy / Routing
+        - Traffic Inspector
+        - Request Replay
+        - Response Mocking
+        - Network Simulation
+        - API Schema Inference
+        - Tunnels
+        - Desktop App
+        - Web Dashboard
+        - MCP Server
+        - Configuration
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, mockups, or references that help explain the feature.

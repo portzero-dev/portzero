@@ -159,12 +159,12 @@ pub fn is_ca_trusted(state_dir: &Path) -> Result<bool> {
 
     #[cfg(target_os = "macos")]
     {
-        return is_ca_trusted_macos(&paths.ca_cert);
+        is_ca_trusted_macos(&paths.ca_cert)
     }
 
     #[cfg(target_os = "linux")]
     {
-        return is_ca_trusted_linux(&paths.ca_cert);
+        is_ca_trusted_linux(&paths.ca_cert)
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
@@ -196,12 +196,12 @@ pub fn trust_ca(state_dir: &Path, use_sudo_prompt: bool) -> Result<TrustResult> 
 
     #[cfg(target_os = "macos")]
     {
-        return trust_ca_macos(&paths.ca_cert, use_sudo_prompt);
+        trust_ca_macos(&paths.ca_cert, use_sudo_prompt)
     }
 
     #[cfg(target_os = "linux")]
     {
-        return trust_ca_linux(&paths.ca_cert, use_sudo_prompt);
+        trust_ca_linux(&paths.ca_cert, use_sudo_prompt)
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
@@ -216,12 +216,12 @@ pub fn untrust_ca(state_dir: &Path, use_sudo_prompt: bool) -> Result<TrustResult
 
     #[cfg(target_os = "macos")]
     {
-        return untrust_ca_macos(&paths.ca_cert, use_sudo_prompt);
+        untrust_ca_macos(&paths.ca_cert, use_sudo_prompt)
     }
 
     #[cfg(target_os = "linux")]
     {
-        return untrust_ca_linux(use_sudo_prompt);
+        untrust_ca_linux(use_sudo_prompt)
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
@@ -238,20 +238,20 @@ pub fn trust_ca_command(state_dir: &Path) -> String {
 
     #[cfg(target_os = "macos")]
     {
-        return format!(
+        format!(
             "security add-trusted-cert -r trustRoot \
              -k ~/Library/Keychains/login.keychain-db \"{}\"",
             cert_path
-        );
+        )
     }
 
     #[cfg(target_os = "linux")]
     {
-        return format!(
+        format!(
             "sudo cp \"{}\" /usr/local/share/ca-certificates/portzero-ca.crt && \
              sudo update-ca-certificates",
             cert_path
-        );
+        )
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]

@@ -58,7 +58,7 @@ function Navbar() {
             Docs
           </a>
           <a
-            href="https://github.com/dviejokfs/portzero"
+            href="https://github.com/portzero-dev/portzero"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-zinc-400 transition-colors hover:text-white"
@@ -68,7 +68,7 @@ function Navbar() {
         </div>
         <div className="flex items-center gap-3">
           <a
-            href="https://github.com/dviejokfs/portzero"
+            href="https://github.com/portzero-dev/portzero"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:text-white"
@@ -139,7 +139,7 @@ function Hero() {
             <ArrowRight className="h-4 w-4" />
           </a>
           <a
-            href="https://github.com/dviejokfs/portzero"
+            href="https://github.com/portzero-dev/portzero"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 px-6 py-3 text-base font-medium text-zinc-300 transition-colors hover:border-zinc-600 hover:text-white"
@@ -541,7 +541,7 @@ function CLI() {
 }
 
 const GITHUB_RELEASE_URL =
-  "https://github.com/dviejokfs/portzero/releases/latest";
+  "https://github.com/portzero-dev/portzero/releases/latest";
 
 const downloads: {
   platform: string;
@@ -697,7 +697,7 @@ function Footer() {
               Docs
             </a>
             <a
-              href="https://github.com/dviejokfs/portzero"
+              href="https://github.com/portzero-dev/portzero"
               target="_blank"
               rel="noopener noreferrer"
               className="transition-colors hover:text-zinc-300"

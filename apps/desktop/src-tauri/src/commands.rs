@@ -1001,7 +1001,7 @@ pub async fn install_cli(install_dir: Option<String>) -> Result<CliInstallResult
             });
         }
 
-        return Err(format!("Failed to create symlink: {}", stderr));
+        Err(format!("Failed to create symlink: {}", stderr))
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -1075,7 +1075,7 @@ pub async fn uninstall_cli() -> Result<CliInstallResult, String> {
                 installed_path: Some(installed_path),
             });
         }
-        return Err(format!("Failed to remove: {}", stderr));
+        Err(format!("Failed to remove: {}", stderr))
     }
 
     #[cfg(not(target_os = "macos"))]

@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 description = "HTTP API + WebSocket server for PortZero dashboard"
+publish = false
 
 [dependencies]
 portzero-core = { workspace = true }

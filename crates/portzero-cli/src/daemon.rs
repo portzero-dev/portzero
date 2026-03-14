@@ -88,6 +88,23 @@ pub fn is_process_alive(pid: i32) -> bool {
     unsafe { libc::kill(pid, 0) == 0 }
 }
 
+/// Try to load tunnel config from `portzero.toml` in the current directory.
+/// Returns `None` if the file doesn't exist or has no tunnel section.
+#[cfg(feature = "tunnel")]
+fn load_tunnel_config() -> Option<portzero_core::config::TunnelConfig> {
+    use portzero_core::config::Config;
+    let config_path = std::env::current_dir().ok()?.join("portzero.toml");
+    let config = Config::load(&config_path).ok()?;
+    if config.tunnel.relay.is_some()
+        || config.tunnel.token.is_some()
+        || config.tunnel.transport.is_some()
+    {
+        Some(config.tunnel)
+    } else {
+        None
+    }
+}
+
 /// Start the proxy daemon.
 ///
 /// Runs four things concurrently:
@@ -194,7 +211,7 @@ pub async fn start(daemonize: bool, state_dir: &Path) -> Result<()> {
     #[cfg(feature = "tunnel")]
     let tunnel_manager = Arc::new(portzero_core::tunnel::TunnelManager::from_state_dir(
         state_dir,
-        None, // TODO: load [tunnel] config from portzero.toml if present
+        load_tunnel_config().as_ref(),
         Some((*app_state.ws_hub).clone()),
     ));
     #[cfg(not(feature = "tunnel"))]

@@ -13,7 +13,7 @@ version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = ["PortZero Contributors"]
-repository = "https://github.com/portzero/portzero"
+repository = "https://github.com/portzero-dev/portzero"
 
 [workspace.dependencies]
 # Async runtime

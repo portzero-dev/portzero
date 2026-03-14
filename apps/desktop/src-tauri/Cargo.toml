@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "PortZero desktop dashboard (Tauri v2)"
+publish = false
 
 [lib]
 name = "portzero_desktop_lib"

@@ -169,7 +169,7 @@ export function Sidebar() {
         {/* Footer */}
         <div className="border-t border-zinc-800 p-4">
           <a
-            href="https://github.com/dviejokfs/portzero"
+            href="https://github.com/portzero-dev/portzero"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-xs text-zinc-500 transition-colors hover:text-zinc-300"

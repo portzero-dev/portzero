@@ -6,7 +6,7 @@ If you discover a security vulnerability in PortZero, please report it responsib
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Instead, please email security concerns to the maintainers at the email address listed in the repository's GitHub profile, or use [GitHub's private vulnerability reporting](https://github.com/portzero/portzero/security/advisories/new).
+Instead, please email security concerns to the maintainers at the email address listed in the repository's GitHub profile, or use [GitHub's private vulnerability reporting](https://github.com/portzero-dev/portzero/security/advisories/new).
 
 ### What to include
 
@@ -39,4 +39,4 @@ PortZero is a **local development tool** and its security model reflects that:
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x   | Yes       |
+| 0.2.x   | Yes       |

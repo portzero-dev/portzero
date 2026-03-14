@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 description = "Core library for PortZero - proxy, router, recorder, process manager"
+publish = false
 
 [dependencies]
 tokio = { workspace = true }

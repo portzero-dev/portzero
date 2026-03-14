@@ -1,5 +1,8 @@
 # PortZero
 
+[![CI](https://github.com/portzero-dev/portzero/actions/workflows/ci.yml/badge.svg)](https://github.com/portzero-dev/portzero/actions/workflows/ci.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
+
 Local development reverse proxy, process manager, and traffic inspector.
 
 PortZero assigns stable `<name>.localhost` URLs to your dev servers, captures all HTTP traffic for inspection, and provides request replay, mocking, interception, and network simulation -- all from a single Rust binary powered by [Cloudflare Pingora](https://github.com/cloudflare/pingora).
@@ -23,11 +26,11 @@ PortZero assigns stable `<name>.localhost` URLs to your dev servers, captures al
 ### Install
 
 ```sh
-# From source
-cargo install --path crates/portzero-cli
+# One-liner install (macOS / Linux)
+curl -fsSL https://goport0.dev/install.sh | bash
 
-# Or build the workspace
-cargo build --release -p portzero-cli
+# Or from source
+cargo install --path crates/portzero-cli
 ```
 
 ### Run a single app
@@ -35,11 +38,11 @@ cargo build --release -p portzero-cli
 ```sh
 # Name inferred from current directory
 portzero next dev
-# → http://my-project.localhost:1337
+# -> http://my-project.localhost:1337
 
 # Explicit name
 portzero my-app next dev
-# → http://my-app.localhost:1337
+# -> http://my-app.localhost:1337
 ```
 
 ### Run multiple apps
@@ -65,8 +68,8 @@ Then start everything:
 
 ```sh
 portzero up
-# → http://web.localhost:1337
-# → http://api.localhost:1337
+# -> http://web.localhost:1337
+# -> http://api.localhost:1337
 ```
 
 ### Trust the local CA (HTTPS)
@@ -115,7 +118,7 @@ PortZero is a Cargo workspace with the following crates:
 | `portzero-core` | Core library: proxy, router, recorder, process manager, mock engine, network sim, schema inference, tunnel, certs |
 | `portzero-cli` | CLI binary (`portzero` command) |
 | `portzero-api` | HTTP API (axum) + WebSocket server |
-| `portzero-desktop` | Tauri v2 desktop app |
+| `portzero-mcp` | MCP server for AI agent integration (stdio JSON-RPC) |
 
 The React dashboard lives in `apps/desktop/` and is shared between the Tauri app and the embedded web fallback.
 
@@ -138,6 +141,16 @@ WS     /api/ws                      # Real-time event stream
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the complete endpoint reference.
+
+## Platform Support
+
+| Platform | CLI | Desktop App |
+|----------|-----|-------------|
+| macOS (Apple Silicon) | Yes | Yes |
+| macOS (Intel) | Yes | Yes |
+| Linux x86_64 | Yes | Yes (AppImage, deb) |
+| Linux aarch64 | Yes | — |
+| Windows | Not yet | Not yet |
 
 ## Building from Source
 
@@ -166,12 +179,16 @@ cd apps/desktop && pnpm tauri build
 
 ```sh
 # Run all Rust tests
-cargo test
+cargo test --workspace
 
 # Run tests for a specific crate
 cargo test -p portzero-core
 cargo test -p portzero-api
 ```
+
+## Documentation
+
+Full documentation is available at [goport0.dev/docs](https://goport0.dev/docs).
 
 ## Contributing
 

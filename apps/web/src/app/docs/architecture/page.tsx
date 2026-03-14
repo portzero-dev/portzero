@@ -206,7 +206,7 @@ export default function Architecture() {
       <p>
         For the full 1300+ line architecture document, see{" "}
         <a
-          href="https://github.com/dviejokfs/portzero/blob/main/ARCHITECTURE.md"
+          href="https://github.com/portzero-dev/portzero/blob/main/ARCHITECTURE.md"
           target="_blank"
           rel="noopener noreferrer"
         >

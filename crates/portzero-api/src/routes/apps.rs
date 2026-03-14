@@ -32,7 +32,14 @@ pub async fn list_apps(State(state): State<AppState>) -> impl IntoResponse {
 /// GET /api/apps/:name — Get a single app's details.
 pub async fn get_app(Path(name): Path<String>, State(state): State<AppState>) -> impl IntoResponse {
     match state.apps.get(&name) {
-        Some(app) => Json(serde_json::to_value(app.value()).unwrap()).into_response(),
+        Some(app) => match serde_json::to_value(app.value()) {
+            Ok(val) => Json(val).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiError::internal(format!("Serialization error: {e}"))),
+            )
+                .into_response(),
+        },
         None => (
             StatusCode::NOT_FOUND,
             Json(ApiError::not_found(format!("App '{}' not found", name))),
@@ -112,7 +119,14 @@ pub async fn get_app_logs(
         Some(log_buffer) => {
             let logs: Vec<&LogLine> = log_buffer.iter().rev().take(max_lines).collect();
             let logs: Vec<LogLine> = logs.into_iter().rev().cloned().collect();
-            Json(serde_json::to_value(&logs).unwrap()).into_response()
+            match serde_json::to_value(&logs) {
+                Ok(val) => Json(val).into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ApiError::internal(format!("Serialization error: {e}"))),
+                )
+                    .into_response(),
+            }
         }
         None => {
             // App exists but no logs yet, or app doesn't exist

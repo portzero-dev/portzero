@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 description = "CLI binary for PortZero"
+publish = false
 
 [[bin]]
 name = "portzero"

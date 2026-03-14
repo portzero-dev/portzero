@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 description = "MCP server for AI agent integration with PortZero"
+publish = false
 
 [dependencies]
 portzero-core = { workspace = true }

@@ -39,7 +39,7 @@ PORTZERO_VERSION=0.1.0 curl -fsSL https://goport0.dev/install.sh | bash`}
       <p>
         Download the binary for your platform from the{" "}
         <a
-          href="https://github.com/dviejokfs/portzero/releases"
+          href="https://github.com/portzero-dev/portzero/releases"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -84,7 +84,7 @@ PORTZERO_VERSION=0.1.0 curl -fsSL https://goport0.dev/install.sh | bash`}
       <CodeBlock
         lang="shellscript"
         code={`# Example: manual install on macOS Apple Silicon
-curl -fsSL https://github.com/dviejokfs/portzero/releases/latest/download/portzero-darwin-aarch64.tar.gz | tar xz
+curl -fsSL https://github.com/portzero-dev/portzero/releases/latest/download/portzero-darwin-aarch64.tar.gz | tar xz
 sudo mv portzero /usr/local/bin/`}
       />
 
@@ -94,7 +94,7 @@ sudo mv portzero /usr/local/bin/`}
       </p>
       <CodeBlock
         lang="shellscript"
-        code={`git clone https://github.com/dviejokfs/portzero.git
+        code={`git clone https://github.com/portzero-dev/portzero.git
 cd portzero
 cargo install --path crates/portzero-cli`}
       />

@@ -4,7 +4,7 @@ set -euo pipefail
 # PortZero CLI installer
 # Usage: curl -fsSL https://goport0.dev/install.sh | bash
 
-REPO="dviejokfs/portzero"
+REPO="portzero-dev/portzero"
 BINARY="portzero"
 INSTALL_DIR="${PORTZERO_INSTALL_DIR:-/usr/local/bin}"
 

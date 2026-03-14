@@ -13,7 +13,7 @@ Thank you for your interest in contributing to PortZero! This document provides 
 ### Setup
 
 ```sh
-git clone https://github.com/portzero/portzero.git
+git clone https://github.com/portzero-dev/portzero.git
 cd portzero
 
 # Build and test the Rust workspace
@@ -124,8 +124,8 @@ Use conventional commit prefixes: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
 
 ## Reporting Issues
 
-- Use the [bug report template](https://github.com/portzero/portzero/issues/new?template=bug_report.md) for bugs
-- Use the [feature request template](https://github.com/portzero/portzero/issues/new?template=feature_request.md) for new ideas
+- Use the [bug report template](https://github.com/portzero-dev/portzero/issues/new?template=bug_report.yml) for bugs
+- Use the [feature request template](https://github.com/portzero-dev/portzero/issues/new?template=feature_request.yml) for new ideas
 - Search existing issues before creating a new one
 
 ## Code of Conduct
