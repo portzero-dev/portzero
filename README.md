@@ -28,6 +28,9 @@ PortZero assigns stable `<name>.localhost` URLs to your dev servers, captures al
 ### Install
 
 ```sh
+# Homebrew (macOS / Linux)
+brew install portzero-dev/tap/portzero
+
 # One-liner install (macOS / Linux)
 curl -fsSL https://goport0.dev/install.sh | bash
 

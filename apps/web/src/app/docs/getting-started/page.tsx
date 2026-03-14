@@ -14,7 +14,13 @@ export default async function GettingStarted() {
       </ul>
 
       <h2>Installation</h2>
-      <h3>Quick install (recommended)</h3>
+      <h3>Homebrew (recommended)</h3>
+      <CodeBlock
+        lang="shellscript"
+        code="brew install portzero-dev/tap/portzero"
+      />
+
+      <h3>Quick install script</h3>
       <p>
         Install the latest release with a single command:
       </p>
