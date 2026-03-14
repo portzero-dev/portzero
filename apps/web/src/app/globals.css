@@ -127,7 +127,7 @@ html {
   padding: 0;
   color: #d4d4d8;
   font-size: 0.875rem;
-  line-height: 1.7;
+  line-height: 1.5;
 }
 
 .docs-content table {
@@ -184,7 +184,7 @@ html {
   background: transparent !important;
   padding: 0 !important;
   font-size: 0.875rem;
-  line-height: 1.7;
+  line-height: 1.5;
 }
 
 .code-block .shiki {
