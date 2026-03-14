@@ -158,15 +158,17 @@ portzero/
 │   │       ├── lib.rs
 │   │       └── tools.rs               # MCP tool definitions
 │   │
-│   └── portzero-dashboard/            # Tauri v2 desktop app
-│       ├── Cargo.toml                 # Tauri Rust backend
-│       ├── tauri.conf.json
-│       ├── src/
-│       │   ├── main.rs                # Tauri app entry point
-│       │   ├── tray.rs                # System tray menu + actions
-│       │   ├── commands.rs            # Tauri IPC commands
-│       │   └── daemon_bridge.rs       # Manage daemon lifecycle from app
-│       └── ui/                        # React frontend (Vite)
+apps/
+├── desktop/                           # Tauri v2 desktop app
+│   ├── src-tauri/
+│   │   ├── Cargo.toml                 # Tauri Rust backend
+│   │   ├── tauri.conf.json
+│   │   └── src/
+│   │       ├── main.rs                # Tauri app entry point
+│   │       ├── tray.rs                # System tray menu + actions
+│   │       ├── commands.rs            # Tauri IPC commands
+│   │       └── daemon_bridge.rs       # Manage daemon lifecycle from app
+│   └── src/                           # React frontend (Vite)
 │           ├── package.json
 │           ├── vite.config.ts
 │           ├── tailwind.config.ts
@@ -929,7 +931,7 @@ WS     /api/ws                            # Real-time event stream
 
 ---
 
-### 5.12 Dashboard (`portzero-dashboard/`)
+### 5.12 Dashboard (`apps/desktop/`)
 
 #### Dual-mode Architecture
 
@@ -1206,7 +1208,7 @@ The CLI binary embeds the built dashboard SPA using `rust-embed`:
 
 ```rust
 #[derive(RustEmbed)]
-#[folder = "../portzero-dashboard/ui/dist"]
+#[folder = "../../dashboard-dist"]
 struct DashboardAssets;
 
 // In the axum API server:

@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/portzero-dev/portzero/actions/workflows/ci.yml/badge.svg)](https://github.com/portzero-dev/portzero/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
+[![GitHub release](https://img.shields.io/github/v/release/portzero-dev/portzero?label=release)](https://github.com/portzero-dev/portzero/releases)
+[![GitHub stars](https://img.shields.io/github/stars/portzero-dev/portzero)](https://github.com/portzero-dev/portzero/stargazers)
 
 Local development reverse proxy, process manager, and traffic inspector.
 

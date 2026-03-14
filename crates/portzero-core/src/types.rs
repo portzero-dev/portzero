@@ -1,7 +1,7 @@
 //! Shared types used across all PortZero crates.
 //!
 //! This module defines the core data structures and trait interfaces that
-//! `portzero-api`, `portzero-mcp`, and `portzero-dashboard` code against.
+//! `portzero-api`, `portzero-mcp`, and the desktop app code against.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
