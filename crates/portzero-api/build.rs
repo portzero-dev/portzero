@@ -16,7 +16,8 @@ fn main() {
     if !index.exists() {
         fs::write(
             &index,
-            "<!DOCTYPE html><html><body><p>Dashboard not built yet. \
+            "<!DOCTYPE html><html><head><title>PortZero</title></head><body>\
+             <p>PortZero dashboard not built yet. \
              Run the frontend build to populate this folder.</p></body></html>\n",
         )
         .expect("failed to write placeholder index.html");
