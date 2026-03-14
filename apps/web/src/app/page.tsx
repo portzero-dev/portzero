@@ -58,6 +58,12 @@ function Navbar() {
             Docs
           </a>
           <a
+            href="/blog"
+            className="text-sm text-zinc-400 transition-colors hover:text-white"
+          >
+            Blog
+          </a>
+          <a
             href="https://github.com/portzero-dev/portzero"
             target="_blank"
             rel="noopener noreferrer"
@@ -695,6 +701,12 @@ function Footer() {
               className="transition-colors hover:text-zinc-300"
             >
               Docs
+            </a>
+            <a
+              href="/blog"
+              className="transition-colors hover:text-zinc-300"
+            >
+              Blog
             </a>
             <a
               href="https://github.com/portzero-dev/portzero"
