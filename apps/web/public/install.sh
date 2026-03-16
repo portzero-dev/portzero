@@ -97,7 +97,7 @@ main() {
   info "Downloading ${asset_name}..."
 
   tmp_dir=$(mktemp -d)
-  trap 'rm -rf "$tmp_dir"' EXIT
+  trap 'rm -rf "${tmp_dir:-}"' EXIT
 
   download "$url" "${tmp_dir}/${asset_name}" || \
     error "Download failed. Check that version v${version} exists at:\n  ${url}"

@@ -155,6 +155,27 @@ function Hero() {
           </a>
         </div>
 
+        {/* CLI install */}
+        <div
+          className="animate-fade-in-up mx-auto mt-10 max-w-xl"
+          style={{ animationDelay: "0.35s" }}
+        >
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <div className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/80 px-4 py-2.5">
+              <Terminal className="h-4 w-4 shrink-0 text-zinc-500" />
+              <code className="text-sm text-zinc-300">
+                brew install portzero-dev/tap/portzero
+              </code>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center justify-center gap-2 text-xs text-zinc-500">
+            <span>or</span>
+            <code className="rounded bg-zinc-800/50 px-1.5 py-0.5 text-zinc-400">
+              curl -fsSL https://goport0.dev/install.sh | bash
+            </code>
+          </div>
+        </div>
+
         {/* Terminal preview */}
         <div
           className="animate-fade-in-up mx-auto mt-16 max-w-2xl"
