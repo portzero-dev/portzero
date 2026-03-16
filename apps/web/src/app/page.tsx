@@ -138,11 +138,11 @@ function Hero() {
           style={{ animationDelay: "0.3s" }}
         >
           <a
-            href="#quickstart"
+            href="#download"
             className="inline-flex items-center gap-2 rounded-xl bg-violet-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-violet-hover"
           >
-            Get Started
-            <ArrowRight className="h-4 w-4" />
+            <Download className="h-4 w-4" />
+            Download Desktop App
           </a>
           <a
             href="https://github.com/portzero-dev/portzero"
