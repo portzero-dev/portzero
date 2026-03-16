@@ -43,22 +43,13 @@ pub async fn run(
     // Allocate a port from the daemon's router
     let port = client.allocate_port(&name).await?;
 
-    // Build the child command
-    let (program, args) = if command.len() == 1 {
-        #[cfg(unix)]
-        {
-            ("sh".to_string(), vec!["-c".to_string(), command[0].clone()])
-        }
-        #[cfg(not(unix))]
-        {
-            (
-                "cmd".to_string(),
-                vec!["/C".to_string(), command[0].clone()],
-            )
-        }
-    } else {
-        (command[0].clone(), command[1..].to_vec())
-    };
+    // Build the child command — always use `sh -c` so the shell resolves
+    // executables in PATH and ./node_modules/.bin consistently.
+    let full_cmd = command.join(" ");
+    #[cfg(unix)]
+    let (program, args) = ("sh".to_string(), vec!["-c".to_string(), full_cmd]);
+    #[cfg(not(unix))]
+    let (program, args) = ("cmd".to_string(), vec!["/C".to_string(), full_cmd]);
 
     let mut cmd = Command::new(&program);
     cmd.args(&args)
