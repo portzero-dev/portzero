@@ -567,7 +567,7 @@ function CLI() {
   );
 }
 
-const DESKTOP_VERSION = "0.2.0";
+const DESKTOP_VERSION = "0.2.1";
 const DESKTOP_RELEASE_URL = `https://github.com/portzero-dev/portzero/releases/download/desktop-v${DESKTOP_VERSION}`;
 
 const downloads: {
