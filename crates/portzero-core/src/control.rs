@@ -372,7 +372,21 @@ async fn process_request(
         }
 
         ControlRequest::AllocatePort { name } => {
-            let port = router.find_free_port(&name);
+            // Return existing port if already allocated for this name
+            let port = if let Some(existing) = router.get_port(&name) {
+                existing
+            } else {
+                let port = router.find_free_port(&name);
+                // Reserve the port in the router so subsequent calls return the same one
+                router.register(
+                    name,
+                    port,
+                    0, // PID not yet known
+                    vec![],
+                    std::path::PathBuf::new(),
+                );
+                port
+            };
             ControlResponse::Port { port }
         }
 
