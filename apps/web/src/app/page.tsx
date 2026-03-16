@@ -546,8 +546,8 @@ function CLI() {
   );
 }
 
-const GITHUB_RELEASE_URL =
-  "https://github.com/portzero-dev/portzero/releases/latest";
+const DESKTOP_VERSION = "0.2.0";
+const DESKTOP_RELEASE_URL = `https://github.com/portzero-dev/portzero/releases/download/desktop-v${DESKTOP_VERSION}`;
 
 const downloads: {
   platform: string;
@@ -560,12 +560,12 @@ const downloads: {
     builds: [
       {
         label: "Apple Silicon (M1+)",
-        href: `${GITHUB_RELEASE_URL}/download/PortZero_aarch64.dmg`,
+        href: `${DESKTOP_RELEASE_URL}/PortZero_${DESKTOP_VERSION}_aarch64.dmg`,
         badge: "arm64",
       },
       {
         label: "Intel",
-        href: `${GITHUB_RELEASE_URL}/download/PortZero_x64.dmg`,
+        href: `${DESKTOP_RELEASE_URL}/PortZero_${DESKTOP_VERSION}_x64.dmg`,
         badge: "x64",
       },
     ],
@@ -576,12 +576,12 @@ const downloads: {
     builds: [
       {
         label: "AppImage",
-        href: `${GITHUB_RELEASE_URL}/download/PortZero_amd64.AppImage`,
+        href: `${DESKTOP_RELEASE_URL}/PortZero_${DESKTOP_VERSION}_amd64.AppImage`,
         badge: "x64",
       },
       {
         label: "Debian / Ubuntu",
-        href: `${GITHUB_RELEASE_URL}/download/PortZero_amd64.deb`,
+        href: `${DESKTOP_RELEASE_URL}/portzero_${DESKTOP_VERSION}_amd64.deb`,
         badge: ".deb",
       },
     ],
@@ -640,7 +640,7 @@ function DesktopDownload() {
         <p className="mt-8 text-center text-sm text-zinc-500">
           Windows support coming soon.{" "}
           <a
-            href={GITHUB_RELEASE_URL}
+            href="https://github.com/portzero-dev/portzero/releases"
             target="_blank"
             rel="noopener noreferrer"
             className="text-violet-primary transition-colors hover:text-violet-hover"
