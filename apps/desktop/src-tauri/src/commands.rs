@@ -179,7 +179,10 @@ pub async fn list_apps(state: State<'_, DesktopState>) -> Result<Vec<AppInfo>, S
             .await
         {
             for entry in daemon_apps {
-                // Avoid duplicates (if the same app is somehow in both)
+                // Skip internal _portzero route and duplicates
+                if entry.name == portzero_core::types::RESERVED_SUBDOMAIN {
+                    continue;
+                }
                 if !apps.iter().any(|a| a.name == entry.name) {
                     let (cpu_percent, memory_bytes) = get_process_stats(entry.pid);
                     apps.push(AppInfo {
@@ -670,7 +673,12 @@ pub async fn stop_tunnel(_state: State<'_, DesktopState>, _app: String) -> Resul
 #[tauri::command]
 pub async fn get_status(state: State<'_, DesktopState>) -> Result<DaemonStatus, String> {
     let uptime = state.started_at.elapsed().as_secs();
-    let mut total_apps = state.router.list().len();
+    let mut total_apps = state
+        .router
+        .list()
+        .iter()
+        .filter(|r| r.hostname != portzero_core::types::RESERVED_SUBDOMAIN)
+        .count();
     let total_requests = state.store.request_count().unwrap_or(0);
 
     // Also count daemon apps (CLI-registered) that aren't in the local router
@@ -688,7 +696,10 @@ pub async fn get_status(state: State<'_, DesktopState>) -> Result<DaemonStatus, 
                 .collect();
             let extra = daemon_apps
                 .iter()
-                .filter(|a| !local_names.contains(&a.name))
+                .filter(|a| {
+                    a.name != portzero_core::types::RESERVED_SUBDOMAIN
+                        && !local_names.contains(&a.name)
+                })
                 .count();
             total_apps += extra;
         }

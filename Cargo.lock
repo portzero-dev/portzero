@@ -4435,7 +4435,7 @@ dependencies = [
 
 [[package]]
 name = "portzero-api"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4465,7 +4465,7 @@ dependencies = [
 
 [[package]]
 name = "portzero-cli"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4492,7 +4492,7 @@ dependencies = [
 
 [[package]]
 name = "portzero-core"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4529,7 +4529,7 @@ dependencies = [
 
 [[package]]
 name = "portzero-desktop"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4556,7 +4556,7 @@ dependencies = [
 
 [[package]]
 name = "portzero-mcp"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",

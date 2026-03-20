@@ -90,8 +90,8 @@ PORTZERO_VERSION=0.1.0 curl -fsSL https://goport0.dev/install.sh | bash`}
       <CodeBlock
         lang="shellscript"
         code={`# Example: manual install on macOS Apple Silicon
-# Replace cli-v0.2.1 with the latest CLI release tag
-curl -fsSL https://github.com/portzero-dev/portzero/releases/download/cli-v0.2.1/portzero-darwin-aarch64.tar.gz | tar xz
+# Replace cli-v0.2.2 with the latest CLI release tag
+curl -fsSL https://github.com/portzero-dev/portzero/releases/download/cli-v0.2.2/portzero-darwin-aarch64.tar.gz | tar xz
 sudo mv portzero /usr/local/bin/`}
       />
 
